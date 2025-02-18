@@ -1,0 +1,48 @@
+{
+  "name": "payverse-api",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node dist/server.js",
+    "dev": "nodemon --exec ts-node src/server.ts",
+    "build": "tsc",
+    "lint": "eslint 'src/**/*.ts'",
+    "format": "prettier --write 'src/**/*.ts'",
+    "prepare": "husky install",
+    "sequelize:init": "npx sequelize init",
+    "sequelize:migrate": "npx ts-node ./node_modules/sequelize-cli/lib/sequelize db:migrate",
+    "sequelize:migrate:undo": "npx ts-node ./node_modules/sequelize-cli/lib/sequelize db:migrate:undo",
+    "sequelize:migrate:undo:all": "npx ts-node ./node_modules/sequelize-cli/lib/sequelize db:migrate:undo:all",
+    "sequelize:seed:all": "npx ts-node ./node_modules/sequelize-cli/lib/sequelize db:seed:all",
+    "sequelize:seed:undo": "npx ts-node ./node_modules/sequelize-cli/lib/sequelize db:seed:undo"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "pg": "^8.13.3",
+    "pg-hstore": "^2.3.4",
+    "sequelize": "^6.37.5",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.13.1",
+    "@types/pg": "^8.11.11",
+    "@types/sequelize": "^4.28.20",
+    "@typescript-eslint/eslint-plugin": "^8.24.1",
+    "@typescript-eslint/parser": "^8.24.1",
+    "eslint": "^9.20.1",
+    "eslint-plugin-prettier": "^5.2.3",
+    "husky": "^8.0.0",
+    "lint-staged": "^15.4.3",
+    "prettier": "^3.5.0",
+    "sequelize-cli": "^6.6.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.3"
+  }
+}
