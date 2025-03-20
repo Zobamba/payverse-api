@@ -18,17 +18,20 @@ export default {
         },
         onDelete: "CASCADE",
       },
+      accountNumber: {
+        type: DataTypes.STRING,
+        allowNull: false,
+      },
       currency: {
         type: DataTypes.STRING,
         allowNull: false,
       },
-      balance: {
-        type: DataTypes.DECIMAL(15, 2),
-        allowNull: false,
-        defaultValue: 0.00,
+      provider: {
+        type: DataTypes.STRING,
+        allowNull: true,
       },
       accountStatus: {
-        type: DataTypes.ENUM("Active", "Suspended", "Closed"),
+        type: DataTypes.STRING,
         defaultValue: "Active",
         allowNull: false,
       },
@@ -45,8 +48,5 @@ export default {
   },
   async down(queryInterface: QueryInterface) {
     await queryInterface.dropTable("VirtualAccounts");
-    await queryInterface.sequelize.query(
-      'DROP TYPE IF EXISTS "enum_VirtualAccounts_accountStatus";'
-    );
   },
 };

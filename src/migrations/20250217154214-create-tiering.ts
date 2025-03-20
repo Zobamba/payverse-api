@@ -10,18 +10,9 @@ export default {
         defaultValue: DataTypes.UUIDV4,
       },
       tierName: {
-        type: DataTypes.ENUM("Silver", "Gold", "Platinum"),
+        type: DataTypes.STRING,
         allowNull: false,
         unique: true,
-        defaultValue: "Silver",
-      },
-      transactionLimit: {
-        type: DataTypes.DECIMAL(15, 2),
-        allowNull: true,
-      },
-      withdrawalLimit: {
-        type: DataTypes.DECIMAL(15, 2),
-        allowNull: true,
       },
       perks: {
         type: DataTypes.TEXT,
@@ -41,8 +32,5 @@ export default {
 
   async down(queryInterface: QueryInterface) {
     await queryInterface.dropTable("Tierings");
-    await queryInterface.sequelize.query(
-      'DROP TYPE IF EXISTS "enum_Tierings_tierName";'
-    );
   },
 };

@@ -1,5 +1,5 @@
 import { Model, DataTypes } from "sequelize";
-import sequelize from "../src/config/db-config/database";
+import sequelize from "../config/database";
 import User from "./user";
 import VirtualAccount from "./virtualAccount";
 
@@ -8,14 +8,19 @@ class Transaction extends Model {
   public userId!: string;
   public accountId!: string;
   public amount!: number;
+  public balanceBefore!: number;
+  public balanceAfter!: number;
   public currency!: string;
-  public type!:
+  public type!: "debit" | "credit";
+  public description!:
     | "Deposit"
     | "Withdrawal"
     | "Transfer"
     | "Payment"
     | "Refund"
-    | "Currency Conversion";
+    | "Currency Conversion"
+    | "Card funding";
+  public meta?: object;
 }
 
 Transaction.init(
@@ -37,23 +42,32 @@ Transaction.init(
       type: DataTypes.DECIMAL(15, 2),
       allowNull: false,
     },
+    balanceBefore: {
+      type: DataTypes.DECIMAL(15, 2),
+      allowNull: false,
+    },
+    balanceAfter: {
+      type: DataTypes.DECIMAL(15, 2),
+      allowNull: false,
+    },
     currency: {
       type: DataTypes.STRING,
       allowNull: false,
     },
     type: {
-      type: DataTypes.ENUM(
-        "Deposit",
-        "Withdrawal",
-        "Transfer",
-        "Payment",
-        "Refund",
-        "Currency Conversion"
-      ),
+      type: DataTypes.STRING,
       allowNull: false,
     },
+    description: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    meta: {
+      type: DataTypes.JSON,
+      allowNull: true,
+    },
   },
-  { sequelize, modelName: "transaction", timestamps: true }
+  { sequelize, modelName: "walletTransaction", timestamps: true }
 );
 
 Transaction.belongsTo(User, { foreignKey: "userId" });

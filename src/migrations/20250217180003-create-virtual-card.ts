@@ -31,7 +31,7 @@ module.exports = {
         allowNull: false,
       },
       cardStatus: {
-        type: DataTypes.ENUM("Active", "Suspended", "Closed"),
+        type: DataTypes.STRING,
         defaultValue: "Active",
         allowNull: false,
       },
@@ -48,8 +48,5 @@ module.exports = {
   },
   async down(queryInterface: QueryInterface) {
     await queryInterface.dropTable("VirtualCards");
-    await queryInterface.sequelize.query(
-      'DROP TYPE IF EXISTS "enum_VirtualCards_cardStatus";'
-    );
   },
 };

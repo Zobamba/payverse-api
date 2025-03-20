@@ -1,5 +1,5 @@
 import { Model, DataTypes } from "sequelize";
-import sequelize from "../src/config/db-config/database";
+import sequelize from "../config/database";
 import User from "./user";
 
 class Invoice extends Model {
@@ -40,7 +40,7 @@ Invoice.init(
       allowNull: false,
     },
     status: {
-      type: DataTypes.ENUM("Paid", "Pending", "Overdue"),
+      type: DataTypes.STRING,
       defaultValue: "Pending",
     },
   },

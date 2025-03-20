@@ -1,5 +1,5 @@
 import { Model, DataTypes } from "sequelize";
-import sequelize from "../src/config/db-config/database";
+import sequelize from "../config/database";
 
 class Tiering extends Model {
   public id!: string;
@@ -17,14 +17,19 @@ Tiering.init(
       primaryKey: true,
     },
     tierName: {
-      type: DataTypes.ENUM("Silver", "Gold", "Platinum"),
+      type: DataTypes.STRING,
       allowNull: false,
       unique: true,
       defaultValue: "Silver",
     },
-    transactionLimit: { type: DataTypes.DECIMAL(15, 2), allowNull: true },
-    withdrawalLimit: { type: DataTypes.DECIMAL(15, 2), allowNull: true },
-    perks: { type: DataTypes.TEXT, allowNull: true },
+    transactionLimit: {
+      type: DataTypes.DECIMAL(15, 2),
+      allowNull: true,
+    },
+    perks: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
   },
   { sequelize, modelName: "tiering", timestamps: true }
 );

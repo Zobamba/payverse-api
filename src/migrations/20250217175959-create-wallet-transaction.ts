@@ -2,7 +2,7 @@ import { QueryInterface, DataTypes, Sequelize } from "sequelize";
 
 export default {
   async up(queryInterface: QueryInterface, sequelize: Sequelize) {
-    await queryInterface.createTable("Transactions", {
+    await queryInterface.createTable("walletTransactions", {
       id: {
         allowNull: false,
         primaryKey: true,
@@ -31,20 +31,37 @@ export default {
         type: DataTypes.DECIMAL(15, 2),
         allowNull: false,
       },
+      balanceBefore: {
+        type: DataTypes.DECIMAL(15, 2),
+        allowNull: false,
+      },
+      balanceAfter: {
+        type: DataTypes.DECIMAL(15, 2),
+        allowNull: false,
+      },
       currency: {
         type: DataTypes.STRING,
         allowNull: false,
       },
       type: {
-        type: DataTypes.ENUM(
-          "Deposit",
-          "Withdrawal",
-          "Transfer",
-          "Payment",
-          "Refund",
-          "Currency Conversion"
-        ),
+        type: DataTypes.STRING,
         allowNull: false,
+      },
+      description: {
+        type: DataTypes.STRING,
+        allowNull: false,
+      },
+      category: {
+        type: DataTypes.STRING,
+        allowNull: false,
+      },
+      status: {
+        type: DataTypes.STRING,
+        allowNull: false,
+      },
+      meta: {
+        type: DataTypes.JSON,
+        allowNull: true,
       },
       createdAt: {
         type: DataTypes.DATE,
@@ -59,9 +76,6 @@ export default {
   },
 
   async down(queryInterface: QueryInterface) {
-    await queryInterface.dropTable("Transactions");
-    await queryInterface.sequelize.query(
-      'DROP TYPE IF EXISTS "enum_Transactions_type";'
-    );
+    await queryInterface.dropTable("walletTransactions");
   },
 };

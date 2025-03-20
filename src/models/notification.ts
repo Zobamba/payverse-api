@@ -1,13 +1,10 @@
 import { Model, DataTypes } from "sequelize";
-import sequelize from "../src/config/db-config/database";
+import sequelize from "../config/database";
 import User from "./user";
 
 class Notification extends Model {
   public id!: string;
   public userId!: string;
-  public type!: "SMS" | "Email";
-  public message!: string;
-  public isRead!: boolean;
 }
 
 Notification.init(
@@ -17,14 +14,10 @@ Notification.init(
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true,
     },
-    userId: { type: DataTypes.UUID, allowNull: false },
-    type: {
-      type: DataTypes.ENUM("SMS", "Email"),
+    message: {
+      type: DataTypes.STRING,
       allowNull: false,
-      defaultValue: "Email",
     },
-    message: { type: DataTypes.STRING, allowNull: false },
-    isRead: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
   },
   { sequelize, modelName: "notification", timestamps: true }
 );

@@ -2,14 +2,32 @@ import { QueryInterface, DataTypes } from "sequelize";
 
 export default {
   async up(queryInterface: QueryInterface) {
-    await queryInterface.createTable("Notifications", {
+    await queryInterface.createTable("Passwords", {
       id: {
         allowNull: false,
         primaryKey: true,
         type: DataTypes.UUID,
         defaultValue: DataTypes.UUIDV4,
       },
-      message: {
+      userId: {
+        type: DataTypes.UUID,
+        allowNull: false,
+        references: {
+          model: "Users",
+          key: "id",
+        },
+        onDelete: "CASCADE",
+      },
+      status: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        defaultValue: "Active",
+      },
+      password: {
+        type: DataTypes.STRING,
+        allowNull: false,
+      },
+      passwordSalt: {
         type: DataTypes.STRING,
         allowNull: false,
       },
@@ -26,6 +44,6 @@ export default {
   },
 
   async down(queryInterface: QueryInterface) {
-    await queryInterface.dropTable("Notifications");
+    await queryInterface.dropTable("Passwords");
   },
 };

@@ -1,12 +1,13 @@
 import { Model, DataTypes } from "sequelize";
-import sequelize from "../src/config/db-config/database";
+import sequelize from "../config/database";
 import User from "./user";
 
 class VirtualAccount extends Model {
   public id!: string;
   public userId!: string;
+  public accountNumber: string;
   public currency!: string;
-  public balance!: number;
+  public provider?: string;
   public accountStatus!: "Active" | "Suspended" | "Closed";
 }
 
@@ -21,16 +22,20 @@ VirtualAccount.init(
       type: DataTypes.UUID,
       allowNull: false,
     },
+    accountNumber: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
     currency: {
       type: DataTypes.STRING,
       allowNull: false,
     },
-    balance: {
-      type: DataTypes.DECIMAL(15, 2),
-      defaultValue: 0,
+    provider: {
+      type: DataTypes.STRING,
+      allowNull: true,
     },
     accountStatus: {
-      type: DataTypes.ENUM("Active", "Suspended", "Closed"),
+      type: DataTypes.STRING,
       defaultValue: "Active",
     },
   },

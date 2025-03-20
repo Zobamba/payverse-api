@@ -1,5 +1,5 @@
 import { Model, DataTypes } from "sequelize";
-import sequelize from "../src/config/db-config/database";
+import sequelize from "../config/database";
 import VirtualAccount from "./virtualAccount";
 
 class VirtualCard extends Model {
@@ -36,7 +36,7 @@ VirtualCard.init(
       allowNull: true,
     },
     cardStatus: {
-      type: DataTypes.ENUM("Active", "Suspended", "Closed"),
+      type: DataTypes.STRING,
       defaultValue: "Active",
     },
   },

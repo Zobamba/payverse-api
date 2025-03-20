@@ -19,11 +19,18 @@ MFA.init(
     },
     userId: { type: DataTypes.UUID, allowNull: false },
     mfaType: {
-      type: DataTypes.ENUM("Email", "SMS", "Authenticator"),
+      type: DataTypes.STRING,
       allowNull: false,
     },
-    secretKey: { type: DataTypes.TEXT, allowNull: false },
-    isActive: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
+    secretKey: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    isActive: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: true,
+    },
   },
   { sequelize, modelName: "mfa", timestamps: true }
 );
