@@ -35,7 +35,7 @@ export default {
         allowNull: false,
       },
       status: {
-        type: DataTypes.ENUM("Paid", "Pending", "Overdue"),
+        type: DataTypes.STRING,
         defaultValue: "Pending",
         allowNull: false,
       },
@@ -52,8 +52,5 @@ export default {
   },
   async down(queryInterface: QueryInterface, Sequelize: Sequelize) {
     await queryInterface.dropTable("Invoices");
-    await queryInterface.sequelize.query(
-      'DROP TYPE IF EXISTS "enum_Invoices_status";'
-    );
   },
 };

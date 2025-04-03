@@ -2,14 +2,27 @@ import { QueryInterface, DataTypes } from "sequelize";
 
 export default {
   async up(queryInterface: QueryInterface) {
-    await queryInterface.createTable("Notifications", {
+    await queryInterface.createTable("BeneficiaryAccounts", {
       id: {
         allowNull: false,
         primaryKey: true,
         type: DataTypes.UUID,
         defaultValue: DataTypes.UUIDV4,
       },
-      message: {
+      bankName: {
+        type: DataTypes.STRING,
+        allowNull: false,
+      },
+      bankCode: {
+        type: DataTypes.STRING,
+        allowNull: false,
+      },
+      accountNumber: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        unique: true,
+      },
+      accountName: {
         type: DataTypes.STRING,
         allowNull: false,
       },
@@ -26,6 +39,6 @@ export default {
   },
 
   async down(queryInterface: QueryInterface) {
-    await queryInterface.dropTable("Notifications");
+    await queryInterface.dropTable("BeneficiaryAccounts");
   },
 };

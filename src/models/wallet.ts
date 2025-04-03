@@ -1,5 +1,5 @@
 import { Model, DataTypes } from "sequelize";
-import sequelize from "../src/config/db-config/database";
+import sequelize from "../config/database";
 import User from "./user";
 
 class Wallet extends Model {
@@ -18,15 +18,27 @@ Wallet.init(
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true,
     },
-    userId: { type: DataTypes.UUID, allowNull: false },
-    currency: { type: DataTypes.STRING, allowNull: false },
-    balance: { type: DataTypes.DECIMAL(15, 2), defaultValue: 0.00 },
+    userId: {
+      type: DataTypes.UUID,
+      allowNull: false,
+    },
+    currency: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    balance: {
+      type: DataTypes.DECIMAL(15, 2),
+      defaultValue: 0.0,
+    },
     walletStatus: {
-      type: DataTypes.ENUM("Active", "Frozen", "Closed"),
+      type: DataTypes.STRING,
       allowNull: false,
       defaultValue: "Active",
     },
-    transactionLimit: { type: DataTypes.DECIMAL(15, 2), allowNull: true },
+    transactionLimit: {
+      type: DataTypes.DECIMAL(15, 2),
+      allowNull: true,
+    },
   },
   { sequelize, modelName: "wallet", timestamps: true }
 );

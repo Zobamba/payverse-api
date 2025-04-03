@@ -1,17 +1,8 @@
-import express from "express";
-import dotenv from "dotenv";
+import app from "./app";
 import sequelize from "./config/database";
+import { env } from "./config/env.config";
 
-dotenv.config();
-const app = express();
-
-app.use(express.json());
-
-app.get("/", (req, res) => {
-  res.send("PayVerse API is running...");
-});
-
-const PORT = process.env.PORT || 5000;
+const PORT = env.PORT || 5000;
 
 async function startServer() {
   try {

@@ -2,34 +2,36 @@ import { QueryInterface, DataTypes } from "sequelize";
 
 export default {
   async up(queryInterface: QueryInterface) {
-    await queryInterface.createTable("MFAs", {
+    await queryInterface.createTable("TierLimits", {
       id: {
         allowNull: false,
         primaryKey: true,
         type: DataTypes.UUID,
         defaultValue: DataTypes.UUIDV4,
       },
-      userId: {
+      tierId: {
         type: DataTypes.UUID,
         allowNull: false,
         references: {
-          model: "Users",
+          model: "Tierings",
           key: "id",
         },
         onDelete: "CASCADE",
       },
-      mfaType: {
+      currency: {
         type: DataTypes.STRING,
         allowNull: false,
       },
-      secretKey: {
-        type: DataTypes.TEXT,
-        allowNull: true,
-      },
-      isActive: {
-        type: DataTypes.BOOLEAN,
+      dailyLimit: {
+        type: DataTypes.DECIMAL(15, 2),
         allowNull: false,
-        defaultValue: true,
+        defaultValue: 0.0,
+      },
+      monthlyLimit: {
+        type: DataTypes.DECIMAL(15, 2),
+        allowNull: false,
+        defaultValue: 0.0,
+        comment: 'This only tracks withdrawal and has nothing to do with deposit',
       },
       createdAt: {
         type: DataTypes.DATE,
@@ -44,6 +46,6 @@ export default {
   },
 
   async down(queryInterface: QueryInterface) {
-    await queryInterface.dropTable("MFAs");
+    await queryInterface.dropTable("TierLimits");
   },
 };

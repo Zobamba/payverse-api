@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { Sequelize, Model, ModelStatic } from "sequelize";
-import config from "../config/config";
+import config from "../../config/config.js";
 
 interface DB {
   [key: string]: ModelStatic<Model<any, any>> & {

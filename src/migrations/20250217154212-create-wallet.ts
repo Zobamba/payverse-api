@@ -28,9 +28,8 @@ export default {
         defaultValue: 0.0,
       },
       walletStatus: {
-        type: DataTypes.ENUM("Active", "Frozen", "Closed"),
+        type: DataTypes.STRING,
         allowNull: false,
-        defaultValue: "Active",
       },
       transactionLimit: {
         type: DataTypes.DECIMAL(15, 2),
@@ -50,8 +49,5 @@ export default {
 
   async down(queryInterface: QueryInterface) {
     await queryInterface.dropTable("Wallets");
-    await queryInterface.sequelize.query(
-      'DROP TYPE IF EXISTS "enum_Wallets_walletStatus";'
-    );
   },
 };
