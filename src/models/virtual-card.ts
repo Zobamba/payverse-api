@@ -1,6 +1,6 @@
 import { Model, DataTypes } from "sequelize";
 import sequelize from "../config/database";
-import VirtualAccount from "./virtualAccount";
+import VirtualAccount from "./virtual-account";
 
 class VirtualCard extends Model {
   public id!: string;

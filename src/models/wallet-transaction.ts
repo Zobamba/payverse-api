@@ -1,7 +1,7 @@
 import { Model, DataTypes } from "sequelize";
 import sequelize from "../config/database";
 import User from "./user";
-import VirtualAccount from "./virtualAccount";
+import VirtualAccount from "./virtual-account";
 
 class Transaction extends Model {
   public id!: string;
