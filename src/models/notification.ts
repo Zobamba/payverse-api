@@ -19,7 +19,7 @@ Notification.init(
       allowNull: false,
     },
   },
-  { sequelize, modelName: "notification", timestamps: true }
+  { sequelize, modelName: "Notification", timestamps: true }
 );
 
 Notification.belongsTo(User, { foreignKey: "userId" });

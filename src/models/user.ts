@@ -5,6 +5,7 @@ class User extends Model {
   public id!: string;
   public firstName!: string;
   public lastName!: string;
+  public middleName?: string;
   public email!: string;
   public password!: string;
   public isVerified!: boolean;
@@ -24,7 +25,7 @@ User.init(
     password: { type: DataTypes.STRING, allowNull: false },
     isVerified: { type: DataTypes.BOOLEAN, defaultValue: false },
   },
-  { sequelize, modelName: "user", timestamps: true }
+  { sequelize, modelName: "User", timestamps: true }
 );
 
 export default User;

@@ -32,7 +32,7 @@ MFA.init(
       defaultValue: true,
     },
   },
-  { sequelize, modelName: "mfa", timestamps: true }
+  { sequelize, modelName: "MFAs", timestamps: true }
 );
 
 MFA.belongsTo(User, { foreignKey: "userId" });

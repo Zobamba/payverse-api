@@ -44,7 +44,7 @@ Invoice.init(
       defaultValue: "Pending",
     },
   },
-  { sequelize, modelName: "invoice", timestamps: true }
+  { sequelize, modelName: "Invoice", timestamps: true }
 );
 
 Invoice.belongsTo(User, { foreignKey: "userId" });

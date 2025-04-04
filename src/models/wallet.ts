@@ -40,7 +40,7 @@ Wallet.init(
       allowNull: true,
     },
   },
-  { sequelize, modelName: "wallet", timestamps: true }
+  { sequelize, modelName: "Wallet", timestamps: true }
 );
 
 Wallet.belongsTo(User, { foreignKey: "userId" });

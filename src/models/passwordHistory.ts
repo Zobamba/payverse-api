@@ -2,15 +2,14 @@ import { Model, DataTypes } from "sequelize";
 import sequelize from "../config/database";
 import User from "./user";
 
-class Password extends Model {
+class PasswordHistory extends Model {
   public id!: string;
   public userId!: string;
   public status!: "Active" | "Inactive";
   public password!: string;
-  public passwordSalt!: string;
 }
 
-Password.init(
+PasswordHistory.init(
   {
     id: {
       type: DataTypes.UUID,
@@ -27,7 +26,7 @@ Password.init(
       onDelete: "CASCADE",
     },
     status: {
-      type: DataTypes.STRING,
+      type: DataTypes.ENUM("Active", "Inactive"),
       allowNull: false,
       defaultValue: "Active",
     },
@@ -35,15 +34,11 @@ Password.init(
       type: DataTypes.STRING,
       allowNull: false,
     },
-    passwordSalt: {
-      type: DataTypes.STRING,
-      allowNull: false,
-    },
   },
-  { sequelize, modelName: "password", timestamps: true }
+  { sequelize, modelName: "PasswordHistory", tableName: "PasswordHistories", timestamps: true }
 );
 
-Password.belongsTo(User, { foreignKey: "userId" });
-User.hasMany(Password, { foreignKey: "userId" });
+PasswordHistory.belongsTo(User, { foreignKey: "userId" });
+User.hasMany(PasswordHistory, { foreignKey: "userId" });
 
-export default Password;
+export default PasswordHistory;

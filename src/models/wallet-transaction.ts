@@ -67,7 +67,7 @@ Transaction.init(
       allowNull: true,
     },
   },
-  { sequelize, modelName: "walletTransaction", timestamps: true }
+  { sequelize, modelName: "WalletTransaction", timestamps: true }
 );
 
 Transaction.belongsTo(User, { foreignKey: "userId" });

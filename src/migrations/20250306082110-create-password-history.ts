@@ -2,7 +2,7 @@ import { QueryInterface, DataTypes } from "sequelize";
 
 export default {
   async up(queryInterface: QueryInterface) {
-    await queryInterface.createTable("Passwords", {
+    await queryInterface.createTable("PasswordHistories", {
       id: {
         allowNull: false,
         primaryKey: true,
@@ -19,15 +19,11 @@ export default {
         onDelete: "CASCADE",
       },
       status: {
-        type: DataTypes.STRING,
+        type: DataTypes.ENUM("Active", "Inactive"),
         allowNull: false,
         defaultValue: "Active",
       },
       password: {
-        type: DataTypes.STRING,
-        allowNull: false,
-      },
-      passwordSalt: {
         type: DataTypes.STRING,
         allowNull: false,
       },
@@ -39,11 +35,12 @@ export default {
       updatedAt: {
         type: DataTypes.DATE,
         allowNull: false,
+        defaultValue: DataTypes.NOW,
       },
     });
   },
 
   async down(queryInterface: QueryInterface) {
-    await queryInterface.dropTable("Passwords");
+    await queryInterface.dropTable("PasswordHistories");
   },
 };
