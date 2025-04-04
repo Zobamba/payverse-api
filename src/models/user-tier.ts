@@ -27,7 +27,7 @@ UserTier.init(
     },
     reasonForChange: { type: DataTypes.TEXT, allowNull: true },
   },
-  { sequelize, modelName: "userTier", timestamps: true }
+  { sequelize, modelName: "UserTier", timestamps: true }
 );
 
 UserTier.belongsTo(User, { foreignKey: "userId" });

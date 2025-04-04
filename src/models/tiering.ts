@@ -31,7 +31,7 @@ Tiering.init(
       allowNull: true,
     },
   },
-  { sequelize, modelName: "tiering", timestamps: true }
+  { sequelize, modelName: "Tiering", timestamps: true }
 );
 
 export default Tiering;

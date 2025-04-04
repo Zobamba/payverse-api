@@ -39,7 +39,7 @@ VirtualAccount.init(
       defaultValue: "Active",
     },
   },
-  { sequelize, modelName: "virtualAccount", timestamps: true }
+  { sequelize, modelName: "VirtualAccount", timestamps: true }
 );
 
 VirtualAccount.belongsTo(User, { foreignKey: "userId" });

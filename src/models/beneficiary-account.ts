@@ -34,7 +34,7 @@ BeneficiaryAccount.init(
       allowNull: false,
     },
   },
-  { sequelize, modelName: "beneficiaryAccount", timestamps: true }
+  { sequelize, modelName: "BeneficiaryAccount", timestamps: true }
 );
 
 export default BeneficiaryAccount;

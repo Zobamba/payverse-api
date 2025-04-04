@@ -22,7 +22,7 @@ KYC.init(
     submittedData: { type: DataTypes.JSONB, allowNull: false },
     providerResponse: { type: DataTypes.JSONB, allowNull: true },
   },
-  { sequelize, modelName: "kyc", timestamps: true }
+  { sequelize, modelName: "KYCs", timestamps: true }
 );
 
 KYC.belongsTo(User, { foreignKey: "userId" });

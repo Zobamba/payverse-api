@@ -71,6 +71,7 @@ export default {
       updatedAt: {
         type: DataTypes.DATE,
         allowNull: false,
+        defaultValue: DataTypes.NOW,
       },
     });
   },

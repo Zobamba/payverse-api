@@ -41,7 +41,7 @@ TierLimit.init(
       defaultValue: 0.00,
     },
   },
-  { sequelize, modelName: "tierLimit", timestamps: true }
+  { sequelize, modelName: "TierLimit", timestamps: true }
 );
 
 TierLimit.belongsTo(Tiering, { foreignKey: "tierId" });

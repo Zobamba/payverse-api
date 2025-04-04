@@ -40,7 +40,7 @@ VirtualCard.init(
       defaultValue: "Active",
     },
   },
-  { sequelize, modelName: "virtualCard", timestamps: true }
+  { sequelize, modelName: "VirtualCard", timestamps: true }
 );
 
 VirtualCard.belongsTo(VirtualAccount, { foreignKey: "accountId" });
