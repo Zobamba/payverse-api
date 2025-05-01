@@ -2,53 +2,48 @@ import { QueryInterface, DataTypes } from "sequelize";
 
 export default {
   async up(queryInterface: QueryInterface) {
-    await queryInterface.createTable("Users", {
+    await queryInterface.createTable("Tokens", {
       id: {
         allowNull: false,
         primaryKey: true,
         type: DataTypes.UUID,
         defaultValue: DataTypes.UUIDV4,
       },
-      firstName: {
+      userId: {
+        type: DataTypes.UUID,
+        allowNull: false,
+        references: {
+          model: "Users",
+          key: "id",
+        },
+        onDelete: "CASCADE",
+      },
+      token: {
+        type: DataTypes.TEXT,
+        allowNull: false,
+      },
+      type: {
         type: DataTypes.STRING,
         allowNull: false,
       },
-      lastName: {
-        type: DataTypes.STRING,
-        allowNull: false,
-      },
-      middleName: {
-        type: DataTypes.STRING,
-        allowNull: true,
-      },
-      email: {
-        type: DataTypes.STRING,
-        allowNull: false,
-        unique: true,
-      },
-      password: {
-        type: DataTypes.STRING,
-        allowNull: false,
-      },
-      isVerified: {
-        type: DataTypes.BOOLEAN,
-        allowNull: false,
-        defaultValue: false,
-      },
-      createdAt: {
+      expiresAt: {
         type: DataTypes.DATE,
         allowNull: false,
+      },
+      createdAt: {
+        allowNull: false,
+        type: DataTypes.DATE,
         defaultValue: DataTypes.NOW,
       },
       updatedAt: {
-        type: DataTypes.DATE,
         allowNull: false,
+        type: DataTypes.DATE,
         defaultValue: DataTypes.NOW,
       },
     });
   },
 
   async down(queryInterface: QueryInterface) {
-    await queryInterface.dropTable("Users");
+    await queryInterface.dropTable("Tokens");
   },
 };

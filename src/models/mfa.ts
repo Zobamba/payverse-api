@@ -5,7 +5,7 @@ import User from "./user";
 class MFA extends Model {
   public id!: string;
   public userId!: string;
-  public mfaType!: "Email" | "SMS" | "Authenticator";
+  public mfaType!: "email" | "sms" | "authenticator";
   public secretKey!: string;
   public isActive!: boolean;
 }

@@ -1,4 +1,4 @@
-import jwt, { VerifyErrors } from "jsonwebtoken";
+import jwt from "jsonwebtoken";
 import { Request, Response, NextFunction } from "express";
 export function verifyAuthToken(
   req: Request,
@@ -22,7 +22,7 @@ export function validateToken(req: any, res: Response, next: NextFunction) {
   jwt.verify(
     req.token,
     process.env.JWT_SECRET,
-    (err: VerifyErrors, authData: any) => {
+    (err: any, authData: any) => {
       if (err) {
         res.status(401).send({
           message:

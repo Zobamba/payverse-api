@@ -1,23 +1,31 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import sequelize from "sequelize";
-import User from "../models/user";
-import PasswordHistory from "../models/passwordHistory";
+import User from "../../models/user";
+import PasswordHistory from "../../models/password-history";
 import {
   ChangePassword,
-  CreateUser,
+  RegisterUser,
   Login,
   ResetPassword,
-} from "./user.interface";
-import { sendVerificationEmail, sendResetPasswordEmail } from "../utils/email";
-import { signJsonWebToken } from "../utils/auth";
-import { throwError } from "../helpers/throw-error";
+} from "./auth.interface";
+import {
+  sendVerificationEmail,
+  sendResetPasswordEmail,
+  sendVerificationCode,
+} from "../../utils/email";
+import { signJsonWebToken } from "../../utils/auth";
+import { throwError } from "../../helpers/throw-error";
+import MFA from "../../models/mfa";
+import Token from "../../models/token";
+import { generateVerificationCode } from "../../utils/code";
+import { storeCode } from "../../utils/code";
 
 const { Op } = sequelize;
 const PASSWORD_HISTORY_LIMIT = 3;
 
-class UserService {
-  public async createUser(payload: CreateUser): Promise<User> {
+class AuthService {
+  public async register(payload: RegisterUser): Promise<User> {
     const existingUser = await User.findOne({
       where: { email: payload.email },
     });
@@ -53,34 +61,62 @@ class UserService {
 
   public async login(
     payload: Login
-  ): Promise<{ user: Record<string, any>; token: string }> {
+  ): Promise<
+    | { message: string; user: Record<string, any>; token: string }
+    | { message: string; mfaToken: string; mfaOptions: string[] }
+  > {
     const userInstance = await User.findOne({
       where: { email: payload.email },
     });
 
     if (!userInstance) {
-      throw new Error("Invalid email or password");
+      throwError(400, "Invalid email or password");
     }
 
     const isMatch = await bcrypt.compare(
       payload.password,
       userInstance.get("password")
     );
+
     if (!isMatch) {
-      throw new Error("Invalid email or password");
+      throwError(400, "Invalid email or password");
     }
 
     const user = userInstance.get({ plain: true });
+
     if (!user.isVerified) {
       throwError(400, "Please verify your email before logging in");
     }
 
-    const token = signJsonWebToken(user);
+    // Check if user has active MFA
+    const userMFAs = await MFA.findAll({
+      where: { userId: user.id, isActive: true },
+      attributes: ["mfaType"],
+    });
 
-    delete user.password;
-    return { user, token };
+    if (userMFAs.length === 0) {
+      const token = signJsonWebToken(user, "6h"); // change to short-lived token
+
+      delete user.password;
+      return { message: "Login successful", user, token };
+    }
+
+    const mfaToken = signJsonWebToken({ id: user.id }, "10m"); // short-lived mfa token
+    const mfaOptions = userMFAs.map((mfa) => mfa.get("mfaType"));
+
+    // Handle Email MFA
+    if (mfaOptions.includes("email")) {
+      const verificationCode = generateVerificationCode();
+      await sendVerificationCode(user, verificationCode);
+      await storeCode(user.id, "email", verificationCode, 10);
+    }
+
+    return {
+      message: "Please check your email to verify your MFA",
+      mfaToken,
+      mfaOptions,
+    };
   }
-
   public async forgotPassword(email: string): Promise<void> {
     const userInstance = await User.findOne({ where: { email } });
     if (!userInstance) throwError(404, "User not found");
@@ -140,11 +176,8 @@ class UserService {
     await this.deleteOldPasswords(userId);
   }
 
-  public async changePassword(
-    req: any,
-    payload: ChangePassword
-  ): Promise<void> {
-    const userId = req.user.id;
+  public async changePassword(payload: ChangePassword): Promise<void> {
+    const userId = payload.userId;
     const userInstance = await User.findByPk(userId);
     if (!userInstance) throwError(404, "User not found");
 
@@ -182,6 +215,46 @@ class UserService {
     await this.updatePasswordHistory(userId, hashedPassword);
     await this.deleteOldPasswords(userId);
   }
+
+  public async refreshAccessToken(refreshToken: string) {
+    if (!refreshToken) {
+      throwError(400, "Refresh token is required");
+    }
+
+    // Find the refresh token in the database
+    const existingToken = await Token.findOne({
+      where: { token: refreshToken },
+    });
+
+    if (!existingToken) {
+      throwError(401, "Invalid refresh token");
+    }
+
+    const decoded: any = jwt.verify(refreshToken, process.env.JWT_SECRET!);
+
+    const user = await User.findByPk(decoded.data.id);
+    if (!user) {
+      throwError(404, "User not found");
+    }
+
+    const plainUser = user.get({ plain: true });
+    delete plainUser.password;
+
+    // Issue new tokens
+    const newAccessToken = signJsonWebToken(plainUser, "15m");
+    const newRefreshToken = signJsonWebToken(plainUser, "7d");
+
+    await existingToken.update({
+      token: newRefreshToken,
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+    });
+
+    return {
+      accessToken: newAccessToken,
+      refreshToken: newRefreshToken,
+      user: plainUser,
+    };
+  }
 }
 
-export default new UserService();
+export default new AuthService();

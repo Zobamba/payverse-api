@@ -10,6 +10,14 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+const MailGenerator = new Mailgen({
+  theme: "default",
+  product: {
+    name: "PayVerse Team",
+    link: "https://mailgen.js/",
+  },
+});
+
 export const sendVerificationEmail = async (user: User, token: string) => {
   const url = `${process.env.FRONTEND_URL}/verify-email?token=${token}`;
 
@@ -30,14 +38,6 @@ export const sendVerificationEmail = async (user: User, token: string) => {
         "Need help, or have questions? Just reply to this email, we'd love to help.",
     },
   };
-
-  const MailGenerator = new Mailgen({
-    theme: "default",
-    product: {
-      name: "PayVerse Team",
-      link: "https://mailgen.js/",
-    },
-  });
 
   const emailBody = MailGenerator.generate(email);
 
@@ -66,26 +66,19 @@ export const sendResetPasswordEmail = async (user: User, token: string) => {
   const email = {
     body: {
       name: user.firstName,
-      intro: 'We’ve received your request to reset your password.',
+      intro: "We’ve received your request to reset your password.",
       action: {
-        instructions: 'Please click the link below to complete the reset.',
+        instructions: "Please click the link below to complete the reset.",
         button: {
-          color: '#1da1f2', // Optional action button color
-          text: 'Reset Password',
+          color: "#1da1f2", // Optional action button color
+          text: "Reset Password",
           link: `${url}`,
         },
       },
-      outro: 'Need help, or have questions? Just reply to this email, we\'d love to help.',
+      outro:
+        "Need help, or have questions? Just reply to this email, we'd love to help.",
     },
   };
-
-  const MailGenerator = new Mailgen({
-    theme: "default",
-    product: {
-      name: "PayVerse Team",
-      link: "https://mailgen.js/",
-    },
-  });
 
   const emailBody = MailGenerator.generate(email);
 
@@ -93,6 +86,44 @@ export const sendResetPasswordEmail = async (user: User, token: string) => {
     from: '"PayVerse" <custom@example.com>',
     to: user.email,
     subject: "[PayVerse] Reset password",
+    html: emailBody,
+  };
+
+  return new Promise((resolve, reject) => {
+    transporter.sendMail(mailOptions, (error, info) => {
+      if (error) {
+        console.log(error);
+        return reject({ message: "Error sending email" });
+      }
+      console.log(`Email sent: ${info.response}`);
+      return resolve({ message: "Email sent successfully" });
+    });
+  });
+};
+
+export const sendVerificationCode = async (user: User, code: string) => {
+  const email = {
+    body: {
+      name: user.firstName,
+      intro: "Your verification code for login",
+      action: {
+        instructions: "Please use the code below to complete your login:",
+        button: {
+          color: "#1da1f2",
+          text: code,
+          link: "#",
+        },
+      },
+      outro: "If you did not request this code, please ignore this email.",
+    },
+  };
+
+  const emailBody = MailGenerator.generate(email);
+
+  const mailOptions = {
+    from: '"PayVerse" <custom@example.com>',
+    to: user.email,
+    subject: "[PayVerse] Verification code",
     html: emailBody,
   };
 

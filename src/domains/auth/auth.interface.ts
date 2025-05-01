@@ -1,4 +1,4 @@
-export interface CreateUser {
+export interface RegisterUser {
   id?: string;
   firstName: string;
   lastName: string;
@@ -21,6 +21,7 @@ export interface ResetPassword {
 }
 
 export interface ChangePassword {
+  userId: string;
   currentPassword: string;
   newPassword: string;
 }

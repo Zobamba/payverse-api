@@ -1,25 +1,25 @@
 import express from "express";
-import userController from "./user.controller";
+import authController from "./auth.controller";
 import {
-  createUser,
+  registerValidation,
   loginValidation,
   forgotPasswordValidation,
   resetPasswordValidation,
   changePasswordValidation,
-} from "./user.validation";
+} from "./auth.validation";
 import { validateToken, verifyAuthToken } from "../middlewares/auth-validate";
 
 const router = express.Router();
 
 /**
- * @post /api/users
+ * @post /api/auth
  * @description Create user
  * @returns user
  */
-router.post("/create-user", createUser, userController.createUser);
+router.post("/register", registerValidation, authController.register);
 
 /**
- * @get /api/users/verify-email
+ * @get /api/auth/verify-email
  * @description Verify email
  * @returns success message
  */
@@ -27,40 +27,40 @@ router.get(
   "/verify-email",
   verifyAuthToken,
   validateToken,
-  userController.verifyEmail
+  authController.verifyEmail
 );
 
 /**
- * @post /api/users/login
+ * @post /api/auth/login
  * @description Login user
  * @returns user
  */
-router.post("/login", loginValidation, userController.login);
+router.post("/login", loginValidation, authController.login);
 
 /**
- * @post /api/users/forgot-password
+ * @post /api/auth/forgot-password
  * @description Forgot password
  * @returns success message
  */
 router.post(
   "/forgot-password",
   forgotPasswordValidation,
-  userController.forgotPassword
+  authController.forgotPassword
 );
 
 /**
- * @post /api/users/reset-password
+ * @post /api/auth/reset-password
  * @description Reset password
  * @returns success message
  */
 router.post(
   "/reset-password",
   resetPasswordValidation,
-  userController.resetPassword
+  authController.resetPassword
 );
 
 /**
- * @post /api/users/change-password
+ * @post /api/auth/change-password
  * @description Change password
  * @returns success message
  */
@@ -69,7 +69,14 @@ router.post(
   verifyAuthToken,
   validateToken,
   changePasswordValidation,
-  userController.changePassword
+  authController.changePassword
 );
+
+/**
+ * @post /api/auth/refresh-token
+ * @description Refresh token
+ * @returns new access & refresh tokens
+ */
+router.post("/refresh-token", authController.refreshToken);
 
 export default router;

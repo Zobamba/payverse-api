@@ -3,7 +3,7 @@ import validate from "../middlewares/form-validate";
 
 const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\da-zA-Z]).{8,}$/;
 
-export const createUser = [
+export const registerValidation = [
   body("firstName").isString().notEmpty().withMessage("First name is required"),
   body("lastName").isString().notEmpty().withMessage("Last name is required"),
   body("email").isEmail().withMessage("Invalid email format"),
@@ -82,5 +82,10 @@ export const changePasswordValidation = [
     .bail()
     .custom((value, { req }) => value === req.body.newPassword)
     .withMessage("Passwords do not match"),
+  validate,
+];
+
+export const refreshTokenValidation = [
+  body("refreshToken").notEmpty().withMessage("Refresh token is required"),
   validate,
 ];
