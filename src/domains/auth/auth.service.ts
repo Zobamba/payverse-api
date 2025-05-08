@@ -95,7 +95,7 @@ class AuthService {
     });
 
     if (userMFAs.length === 0) {
-      const token = signJsonWebToken(user, "6h"); // change to short-lived token
+      const token = signJsonWebToken({ id: user.id, type: 'access' }, "6h"); // change to short-lived token
 
       delete user.password;
       return { message: "Login successful", user, token };
@@ -117,6 +117,7 @@ class AuthService {
       mfaOptions,
     };
   }
+
   public async forgotPassword(email: string): Promise<void> {
     const userInstance = await User.findOne({ where: { email } });
     if (!userInstance) throwError(404, "User not found");
