@@ -1,6 +1,6 @@
 import express from "express";
 import mfaController from "./mfa.controller";
-import { enableMFA, verifyMFA } from "./mfa.validation";
+import { enableMFA } from "./mfa.validation";
 import { validateToken, verifyAuthToken } from "../middlewares/auth-validate";
 
 const router = express.Router();
@@ -17,12 +17,5 @@ router.post(
   enableMFA,
   mfaController.enableMFA
 );
-
-/**
- * @post /api/mfa/verify
- * @description Verify MFA
- * @returns access & refresh tokens, user
- */
-router.post("/verify", verifyMFA, mfaController.verifyMFA);
 
 export default router;

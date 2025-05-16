@@ -19,7 +19,7 @@ export default {
       },
       middleName: {
         type: DataTypes.STRING,
-        allowNull: true,
+        allowNull: false,
       },
       email: {
         type: DataTypes.STRING,

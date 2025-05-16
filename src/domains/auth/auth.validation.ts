@@ -1,11 +1,16 @@
 import { body } from "express-validator";
 import validate from "../middlewares/form-validate";
+import { MFATypes } from "../mfa/mfa.interface";
 
 const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\da-zA-Z]).{8,}$/;
 
 export const registerValidation = [
   body("firstName").isString().notEmpty().withMessage("First name is required"),
   body("lastName").isString().notEmpty().withMessage("Last name is required"),
+  body("middleName")
+    .isString()
+    .notEmpty()
+    .withMessage("Middle name is required"),
   body("email").isEmail().withMessage("Invalid email format"),
   body("password")
     .notEmpty()
@@ -31,6 +36,25 @@ export const registerValidation = [
 export const loginValidation = [
   body("email").isEmail().withMessage("Invalid email format"),
   body("password").notEmpty().withMessage("Password is required"),
+  validate,
+];
+
+export const verifyMFAValidation = [
+  body("mfaToken")
+    .exists()
+    .withMessage("MFA token is required")
+    .isString()
+    .withMessage("MFA token must be a string"),
+  body("mfaType")
+    .exists()
+    .withMessage("MFA type is required")
+    .isIn(MFATypes)
+    .withMessage(`MFA type must be one of ${MFATypes.join(", ")}`),
+  body("code")
+    .exists()
+    .withMessage("Code is required")
+    .isString()
+    .withMessage("Code must be a string"),
   validate,
 ];
 
@@ -63,7 +87,9 @@ export const resetPasswordValidation = [
 ];
 
 export const changePasswordValidation = [
-  body("currentPassword").notEmpty().withMessage("Old password is required"),
+  body("currentPassword")
+    .notEmpty()
+    .withMessage("Current password is required"),
   body("newPassword")
     .notEmpty()
     .withMessage("New password is required")

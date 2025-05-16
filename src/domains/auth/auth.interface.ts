@@ -5,9 +5,6 @@ export interface RegisterUser {
   middleName?: string;
   email: string;
   password: string;
-  isVerified: boolean;
-  createdAt?: Date;
-  updatedAt?: Date;
 }
 
 export interface Login {
@@ -24,4 +21,10 @@ export interface ChangePassword {
   userId: string;
   currentPassword: string;
   newPassword: string;
+}
+
+export interface verifyMFA {
+  mfaToken: string;
+  mfaType: string;
+  code: string;
 }

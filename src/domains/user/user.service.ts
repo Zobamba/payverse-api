@@ -3,25 +3,20 @@ import { throwError } from "../../helpers/throw-error";
 
 class UserService {
   public async getProfile(userId: string): Promise<User> {
-    const user = await User.findByPk(userId, {
-      attributes: { exclude: ["password"] },
-    });
+    const user = await User.scope("withoutPassword").findByPk(userId);
     if (!user) throwError(404, "User not found");
     return user;
   }
+  
 
   public async getUserById(userId: string): Promise<User> {
-    const user = await User.findByPk(userId, {
-      attributes: { exclude: ["password"] },
-    });
+    const user = await User.scope("withoutPassword").findByPk(userId);
     if (!user) throwError(404, "User not found");
     return user;
   }
 
   public async getAllUsers(): Promise<User[]> {
-    const users = await User.findAll({
-      attributes: { exclude: ["password"] },
-    });
+    const users = await User.scope("withoutPassword").findAll();
     if (!users || users.length === 0) throwError(404, "No users found");
     return users;
   }

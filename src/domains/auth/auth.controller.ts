@@ -32,8 +32,19 @@ class AuthController {
     const response = await this.authService.login(req.body);
     sendSuccessRes({
       res,
-      message: response.message,
+      message: "Login successful, verify MFA",
       data: response,
+    });
+  });
+
+    public verifyMFA = asyncHandler(async (req, res) => {
+    const { mfaToken, mfaType, code } = req.body;
+
+    const data = await this.authService.verifyMFA({ mfaToken, mfaType, code });
+    sendSuccessRes({
+      res,
+      message: "MFA verified successfully",
+      data,
     });
   });
 

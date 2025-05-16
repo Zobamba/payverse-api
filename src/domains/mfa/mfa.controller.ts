@@ -18,17 +18,6 @@ class MFAController {
       data: result,
     });
   });
-
-  public verifyMFA = asyncHandler(async (req, res) => {
-    const { mfaToken, mfaType, code } = req.body;
-
-    const data = await this.mfaService.verifyMFA({ mfaToken, mfaType, code });
-    sendSuccessRes({
-      res,
-      message: "MFA verified successfully",
-      data,
-    });
-  });
 }
 
 export default new MFAController(MFAService);

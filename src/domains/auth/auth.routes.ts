@@ -3,6 +3,7 @@ import authController from "./auth.controller";
 import {
   registerValidation,
   loginValidation,
+  verifyMFAValidation,
   forgotPasswordValidation,
   resetPasswordValidation,
   changePasswordValidation,
@@ -36,6 +37,13 @@ router.get(
  * @returns user
  */
 router.post("/login", loginValidation, authController.login);
+
+/**
+ * @post /api/auth/verify
+ * @description Verify MFA
+ * @returns access & refresh tokens, user
+ */
+router.post("/verify", verifyMFAValidation, authController.verifyMFA);
 
 /**
  * @post /api/auth/forgot-password

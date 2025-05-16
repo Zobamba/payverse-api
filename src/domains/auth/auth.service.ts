@@ -1,8 +1,9 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import sequelize from "sequelize";
+import speakeasy from "speakeasy";
+import { getCode } from "../../utils/code";
+import { verifyMFA } from "./auth.interface";
 import User from "../../models/user";
-import PasswordHistory from "../../models/password-history";
 import {
   ChangePassword,
   RegisterUser,
@@ -14,17 +15,18 @@ import {
   sendResetPasswordEmail,
   sendVerificationCode,
 } from "../../utils/email";
-import { signJsonWebToken } from "../../utils/auth";
+import { handleEmailMFA } from "../../helpers/handle-email-mfa";
+import { signJsonWebToken, parseExpiry } from "../../utils/auth";
 import { throwError } from "../../helpers/throw-error";
 import MFA from "../../models/mfa";
 import Token from "../../models/token";
 import { generateVerificationCode } from "../../utils/code";
 import { storeCode } from "../../utils/code";
-
-const { Op } = sequelize;
-const PASSWORD_HISTORY_LIMIT = 3;
+import PasswordService from "../password/password.service";
 
 class AuthService {
+  constructor(private readonly passwordService: typeof PasswordService) {}
+
   public async register(payload: RegisterUser): Promise<User> {
     const existingUser = await User.findOne({
       where: { email: payload.email },
@@ -39,15 +41,11 @@ class AuthService {
 
     const user = userInstance.get({ plain: true });
 
-    await PasswordHistory.create({
-      userId: user.id,
-      password: hashedPassword,
-    });
+    await this.passwordService.createPasswordHistory(user.id, hashedPassword);
 
     const token = signJsonWebToken({ id: user.id });
     await sendVerificationEmail(user, token);
 
-    delete user.password;
     return user;
   }
 
@@ -59,13 +57,11 @@ class AuthService {
     await user.save();
   }
 
-  public async login(
-    payload: Login
-  ): Promise<
-    | { message: string; user: Record<string, any>; token: string }
-    | { message: string; mfaToken: string; mfaOptions: string[] }
-  > {
-    const userInstance = await User.findOne({
+  public async login(payload: Login): Promise<{
+    mfaToken: string;
+    mfaOptions: string[];
+  }> {
+    const userInstance = await User.scope("withPassword").findOne({
       where: { email: payload.email },
     });
 
@@ -88,33 +84,131 @@ class AuthService {
       throwError(400, "Please verify your email before logging in");
     }
 
-    // Check if user has active MFA
-    const userMFAs = await MFA.findAll({
+    let userMFAs = await MFA.findAll({
       where: { userId: user.id, isActive: true },
       attributes: ["mfaType"],
     });
 
-    if (userMFAs.length === 0) {
-      const token = signJsonWebToken({ id: user.id, type: 'access' }, "6h"); // change to short-lived token
+    let sentEmailCode = false;
 
-      delete user.password;
-      return { message: "Login successful", user, token };
+    if (userMFAs.length === 0) {
+      const defaultMfaType = "email";
+
+      await handleEmailMFA(user); // ✅ await is required
+
+      await MFA.create({
+        userId: user.id,
+        mfaType: defaultMfaType,
+        isActive: true,
+      });
+
+      sentEmailCode = true;
+
+      userMFAs = await MFA.findAll({
+        where: { userId: user.id, isActive: true },
+        attributes: ["mfaType"],
+      });
     }
 
-    const mfaToken = signJsonWebToken({ id: user.id }, "10m"); // short-lived mfa token
+    const mfaToken = signJsonWebToken(
+      { id: user.id },
+      process.env.JWT_ACCESS_TOKEN_EXPIRY
+    );
+
     const mfaOptions = userMFAs.map((mfa) => mfa.get("mfaType"));
 
-    // Handle Email MFA
-    if (mfaOptions.includes("email")) {
-      const verificationCode = generateVerificationCode();
-      await sendVerificationCode(user, verificationCode);
-      await storeCode(user.id, "email", verificationCode, 10);
+    if (!sentEmailCode && mfaOptions.includes("email")) {
+      await handleEmailMFA(user); // ✅ await again
     }
 
     return {
-      message: "Please check your email to verify your MFA",
       mfaToken,
       mfaOptions,
+    };
+  }
+
+  public async verifyMFA(payload: verifyMFA) {
+    const decoded: any = jwt.verify(payload.mfaToken, process.env.JWT_SECRET!);
+
+    const userInstance = await User.scope("withoutPassword").findByPk(
+      decoded.data.id
+    );
+    if (!userInstance) {
+      throwError(404, "User not found");
+    }
+    if (!userInstance) throwError(404, "User not found");
+    const user = userInstance.get({ plain: true });
+
+    const mfaInstance = await MFA.findOne({
+      where: {
+        userId: user.id,
+        mfaType: payload.mfaType,
+      },
+    });
+
+    if (!mfaInstance) throwError(400, "MFA method not found");
+
+    const mfaMethod = mfaInstance.get({ plain: true });
+    const secretKey = mfaMethod.secretKey;
+
+    if (payload.mfaType === "totp") {
+      const verified = speakeasy.totp.verify({
+        secret: secretKey!,
+        encoding: "base32",
+        token: payload.code,
+        window: 1,
+      });
+
+      console.log("code", secretKey);
+      console.log("Verified TOTP:", verified);
+
+      if (!verified) throwError(400, "Invalid TOTP code");
+
+      if (!mfaMethod.isActive) {
+        await mfaInstance.update({ isActive: true });
+      }
+    } else if (payload.mfaType === "email" || payload.mfaType === "sms") {
+      let expectedCode: string | null;
+
+      if (mfaMethod.isActive) {
+        // During login, retrieve code from Redis
+        expectedCode = await getCode(user.id, payload.mfaType);
+      } else {
+        // During MFA enabling, use secretKey from the database
+        expectedCode = secretKey;
+      }
+
+      if (!expectedCode || payload.code !== expectedCode) {
+        throwError(400, "Invalid verification code");
+      }
+
+      if (!mfaMethod.isActive) {
+        await mfaInstance.update({ isActive: true });
+      }
+    } else {
+      throwError(400, "Invalid MFA type");
+    }
+
+    const accessToken = signJsonWebToken(
+      { id: user.id },
+      process.env.JWT_ACCESS_TOKEN_EXPIRY
+    );
+    const refreshToken = signJsonWebToken(
+      { id: user.id },
+      process.env.JWT_REFRESH_TOKEN_EXPIRY
+    );
+
+    await Token.create({
+      userId: user.id,
+      token: refreshToken,
+      type: "refresh",
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    });
+
+    return {
+      accessToken,
+      refreshToken,
+      user: user,
     };
   }
 
@@ -126,39 +220,6 @@ class AuthService {
 
     const token = signJsonWebToken({ id: user.id });
     await sendResetPasswordEmail(user, token);
-  }
-
-  private async updatePasswordHistory(userId: string, hashedPassword: string) {
-    await PasswordHistory.update(
-      { status: "Inactive" },
-      {
-        where: {
-          userId,
-          status: "Active",
-        },
-      }
-    );
-
-    await PasswordHistory.create({
-      userId,
-      password: hashedPassword,
-    });
-  }
-
-  private async deleteOldPasswords(userId: string): Promise<void> {
-    const historyToDelete = await PasswordHistory.findAll({
-      where: { userId },
-      order: [["createdAt", "DESC"]],
-      offset: PASSWORD_HISTORY_LIMIT,
-      limit: 100,
-    });
-
-    if (historyToDelete.length > 0) {
-      const idsToDelete = historyToDelete.map((record) => record.get("id"));
-      await PasswordHistory.destroy({
-        where: { id: { [Op.in]: idsToDelete } },
-      });
-    }
   }
 
   public async resetPassword(payload: ResetPassword): Promise<void> {
@@ -173,20 +234,21 @@ class AuthService {
     userInstance.set({ password: hashedPassword });
     await userInstance.save();
 
-    await this.updatePasswordHistory(userId, hashedPassword);
-    await this.deleteOldPasswords(userId);
+    await this.passwordService.updatePasswordHistory(userId, hashedPassword);
   }
 
   public async changePassword(payload: ChangePassword): Promise<void> {
     const userId = payload.userId;
-    const userInstance = await User.findByPk(userId);
+    const userInstance = await User.scope("withPassword").findByPk(userId);
     if (!userInstance) throwError(404, "User not found");
+
+    // const user = userInstance.get({ plain: true });
 
     const isMatch = await bcrypt.compare(
       payload.currentPassword,
       userInstance.get("password")
     );
-    if (!isMatch) throwError(401, "Old password is incorrect");
+    if (!isMatch) throwError(401, "Current password is incorrect");
 
     const isSameAsCurrent = await bcrypt.compare(
       payload.newPassword,
@@ -196,12 +258,7 @@ class AuthService {
     if (isSameAsCurrent)
       throwError(400, "You cannot reuse your current password");
 
-    const history = await PasswordHistory.findAll({
-      where: { userId },
-      order: [["createdAt", "DESC"]],
-      limit: PASSWORD_HISTORY_LIMIT,
-      raw: true,
-    });
+    const history = await this.passwordService.getPasswordHistory(userId);
 
     for (const record of history) {
       const reused = await bcrypt.compare(payload.newPassword, record.password);
@@ -213,8 +270,7 @@ class AuthService {
     userInstance.set({ password: hashedPassword });
     await userInstance.save();
 
-    await this.updatePasswordHistory(userId, hashedPassword);
-    await this.deleteOldPasswords(userId);
+    await this.passwordService.updatePasswordHistory(userId, hashedPassword);
   }
 
   public async refreshAccessToken(refreshToken: string) {
@@ -233,21 +289,28 @@ class AuthService {
 
     const decoded: any = jwt.verify(refreshToken, process.env.JWT_SECRET!);
 
-    const user = await User.findByPk(decoded.data.id);
+    const user = await User.scope("withoutPassword").findByPk(decoded.data.id);
     if (!user) {
       throwError(404, "User not found");
     }
 
     const plainUser = user.get({ plain: true });
-    delete plainUser.password;
 
     // Issue new tokens
-    const newAccessToken = signJsonWebToken(plainUser, "15m");
-    const newRefreshToken = signJsonWebToken(plainUser, "7d");
+    const newAccessToken = signJsonWebToken(
+      { id: plainUser.id, type: "access" },
+      process.env.JWT_ACCESS_TOKEN_EXPIRY
+    );
+    const newRefreshToken = signJsonWebToken(
+      { id: plainUser.id, type: "refresh" },
+      process.env.JWT_REFRESH_TOKEN_EXPIRY
+    );
 
     await existingToken.update({
       token: newRefreshToken,
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+      expiresAt: new Date(
+        Date.now() + parseExpiry(process.env.JWT_REFRESH_TOKEN_EXPIRY)
+      ),
     });
 
     return {
@@ -258,4 +321,4 @@ class AuthService {
   }
 }
 
-export default new AuthService();
+export default new AuthService(PasswordService);
