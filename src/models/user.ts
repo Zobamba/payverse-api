@@ -20,12 +20,27 @@ User.init(
     },
     firstName: { type: DataTypes.STRING, allowNull: false },
     lastName: { type: DataTypes.STRING, allowNull: false },
-    middleName: { type: DataTypes.STRING, allowNull: true },
+    middleName: { type: DataTypes.STRING, allowNull: false },
     email: { type: DataTypes.STRING, allowNull: false, unique: true },
     password: { type: DataTypes.STRING, allowNull: false },
     isVerified: { type: DataTypes.BOOLEAN, defaultValue: false },
   },
-  { sequelize, modelName: "User", timestamps: true }
+  {
+    sequelize,
+    modelName: "User",
+    timestamps: true,
+    defaultScope: {
+      attributes: { exclude: ["password"] }, // default = without password
+    },
+    scopes: {
+      withPassword: {
+        attributes: { include: ["password"] },
+      },
+      withoutPassword: {
+        attributes: { exclude: ["password"] },
+      },
+    },
+  }
 );
 
 export default User;
