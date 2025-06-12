@@ -13,15 +13,12 @@ import {
 import {
   sendVerificationEmail,
   sendResetPasswordEmail,
-  sendVerificationCode,
 } from "../../utils/email";
 import { handleEmailMFA } from "../../helpers/handle-email-mfa";
 import { signJsonWebToken, parseExpiry } from "../../utils/auth";
 import { throwError } from "../../helpers/throw-error";
 import MFA from "../../models/mfa";
 import Token from "../../models/token";
-import { generateVerificationCode } from "../../utils/code";
-import { storeCode } from "../../utils/code";
 import PasswordService from "../password/password.service";
 
 class AuthService {
