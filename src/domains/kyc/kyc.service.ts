@@ -13,8 +13,7 @@ class KYCService {
     bvn: string,
     image: string
   ): Promise<KYCResponse> {
-    const provider = "prembly";
-
+    const provider = "prembly"
     const isVerified = await KYC.findOne({
       where: { userId, provider },
     });
@@ -36,6 +35,8 @@ class KYCService {
         providerResponse: response.response,
       });
     }
+
+    // compare the response with the user submitted data
 
     return response;
   }
