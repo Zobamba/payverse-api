@@ -22,6 +22,11 @@ export default {
         type: DataTypes.STRING,
         allowNull: false,
       },
+      transactionLimit: {
+        type: DataTypes.DECIMAL(15, 2),
+        allowNull: false,
+        defaultValue: 0.0,
+      },
       dailyLimit: {
         type: DataTypes.DECIMAL(15, 2),
         allowNull: false,
@@ -31,7 +36,7 @@ export default {
         type: DataTypes.DECIMAL(15, 2),
         allowNull: false,
         defaultValue: 0.0,
-        comment: 'This only tracks withdrawal and has nothing to do with deposit',
+        comment: "Monthly withdrawal limit (not applicable to deposits)",
       },
       createdAt: {
         type: DataTypes.DATE,

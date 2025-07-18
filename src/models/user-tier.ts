@@ -9,6 +9,7 @@ class UserTier extends Model {
   public tierId!: string;
   public assignedAt!: Date;
   public reasonForChange?: string;
+  public tier?: Tiering;
 }
 
 UserTier.init(
@@ -31,9 +32,9 @@ UserTier.init(
 );
 
 UserTier.belongsTo(User, { foreignKey: "userId" });
-UserTier.belongsTo(Tiering, { foreignKey: "tierId" });
+UserTier.belongsTo(Tiering, { foreignKey: "tierId", as: "tier" });
 
 User.hasMany(UserTier, { foreignKey: "userId" });
-Tiering.hasMany(UserTier, { foreignKey: "tierId" });
+Tiering.hasMany(UserTier, { foreignKey: "tierId", as: "userTiers" });
 
 export default UserTier;

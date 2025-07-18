@@ -9,6 +9,11 @@ export default {
         type: DataTypes.UUID,
         defaultValue: DataTypes.UUIDV4,
       },
+      tierLevel: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 0,
+      },
       tierName: {
         type: DataTypes.STRING,
         allowNull: false,

@@ -7,7 +7,6 @@ class UserService {
     if (!user) throwError(404, "User not found");
     return user;
   }
-  
 
   public async getUserById(userId: string): Promise<User> {
     const user = await User.scope("withoutPassword").findByPk(userId);
@@ -38,13 +37,6 @@ class UserService {
 
     await user.destroy();
   }
-
-  // tierOneVerification
-  // check if user tier is zero, that means they can do kyc
-  // if they are on their tier one, they have already done kyc
-  // check bvn_list, if (identity_type, identity_value, count), if count is greater than three
-
-  // compare and contrast, we will now 
 }
 
 export default new UserService();

@@ -3,7 +3,8 @@ import sequelize from "../config/database";
 
 class Tiering extends Model {
   public id!: string;
-  public tierName!: "Silver" | "Gold" | "Platinum";
+  public tierLevel!: number;
+  public tierName!: string;
   public transactionLimit!: number | null;
   public withdrawalLimit!: number | null;
   public perks!: string | null;
@@ -16,15 +17,15 @@ Tiering.init(
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true,
     },
+    tierLevel: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 0,
+    },
     tierName: {
       type: DataTypes.STRING,
       allowNull: false,
       unique: true,
-      defaultValue: "Silver",
-    },
-    transactionLimit: {
-      type: DataTypes.DECIMAL(15, 2),
-      allowNull: true,
     },
     perks: {
       type: DataTypes.TEXT,

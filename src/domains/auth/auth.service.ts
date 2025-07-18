@@ -20,6 +20,8 @@ import { throwError } from "../../helpers/throw-error";
 import MFA from "../../models/mfa";
 import Token from "../../models/token";
 import PasswordService from "../password/password.service";
+import Tiering from "../../models/tiering";
+import UserTier from "../../models/user-tier";
 
 class AuthService {
   constructor(private readonly passwordService: typeof PasswordService) {}
@@ -50,8 +52,26 @@ class AuthService {
     const user = await User.findByPk(req.user.id);
     if (!user) throwError(400, "Invalid token");
 
+    if (user.isVerified) return;
+
     user.set({ isVerified: true });
     await user.save();
+
+    // Assign default tier now that the user is verified
+    const tierInstance = await Tiering.findOne({ where: { tierLevel: 0 } });
+    const starterTier = tierInstance?.get({ plain: true });
+    const plainUser = user.get({ plain: true });
+
+    if (!starterTier) {
+      throwError(500, "Default tier (Tier 0) not found");
+    }
+
+    await UserTier.create({
+      userId: plainUser.id,
+      tierId: starterTier.id,
+      assignedAt: new Date(),
+      reasonForChange: "Email verified",
+    });
   }
 
   public async login(payload: Login): Promise<{

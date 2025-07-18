@@ -6,6 +6,7 @@ class TierLimit extends Model {
   public id!: string;
   public tierId!: string;
   public currency!: "NGN" | "USD" | "EUR" | "GBP";
+  public transactionLimit!: number;
   public dailyLimit!: number;
   public monthlyLimit!: number;
 }
@@ -27,18 +28,24 @@ TierLimit.init(
       onDelete: "CASCADE",
     },
     currency: {
-      type: DataTypes.STRING,
+      type: DataTypes.ENUM("NGN", "USD", "EUR", "GBP"),
       allowNull: false,
+    },
+    transactionLimit: {
+      type: DataTypes.DECIMAL(15, 2),
+      allowNull: false,
+      defaultValue: 0.0,
     },
     dailyLimit: {
       type: DataTypes.DECIMAL(15, 2),
       allowNull: false,
-      defaultValue: 0.00,
+      defaultValue: 0.0,
     },
     monthlyLimit: {
       type: DataTypes.DECIMAL(15, 2),
       allowNull: false,
-      defaultValue: 0.00,
+      defaultValue: 0.0,
+      comment: "Monthly withdrawal limit (not applicable to deposits)",
     },
   },
   { sequelize, modelName: "TierLimit", timestamps: true }
