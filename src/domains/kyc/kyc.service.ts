@@ -2,7 +2,7 @@ import { KYCResponse } from "./kyc.interface";
 import KYCVerificationService from "../../kyc-verifications/kyc-verifications.service";
 import KYC from "../../models/kyc";
 import UserTier from "../../models/user-tier";
-import Tiering from "../../models/tiering";
+import TierLevel from "../../models/tier-level";
 import { throwError } from "../../helpers/throw-error";
 import logger from "../../helpers/logger";
 import { Op } from "sequelize";
@@ -28,7 +28,7 @@ class KYCService {
 
     const latestTierInstance = await UserTier.findOne({
       where: { userId },
-      include: [{ model: Tiering, as: "tier" }],
+      include: [{ model: TierLevel, as: "tier" }],
       order: [["assignedAt", "DESC"]],
     });
 
@@ -36,7 +36,7 @@ class KYCService {
 
     if (!latestTier) throwError(400, "User tier not assigned");
 
-    const userTierLevel = latestTier.tier?.tierLevel;
+    const userTierLevel = latestTier.tier?.level;
     if (userTierLevel !== 0) {
       throwError(403, "You have already completed KYC");
     }
@@ -99,8 +99,8 @@ class KYCService {
         { transaction }
       );
 
-      const tierInstance = await Tiering.findOne({
-        where: { tierLevel: 1 },
+      const tierInstance = await TierLevel.findOne({
+        where: { level: 1 },
         transaction,
       });
 

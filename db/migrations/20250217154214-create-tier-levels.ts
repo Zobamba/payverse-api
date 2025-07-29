@@ -2,19 +2,19 @@ import { QueryInterface, DataTypes } from "sequelize";
 
 export default {
   async up(queryInterface: QueryInterface) {
-    await queryInterface.createTable("Tierings", {
+    await queryInterface.createTable("TierLevels", {
       id: {
         allowNull: false,
         primaryKey: true,
         type: DataTypes.UUID,
         defaultValue: DataTypes.UUIDV4,
       },
-      tierLevel: {
+      level: {
         type: DataTypes.INTEGER,
         allowNull: false,
         defaultValue: 0,
       },
-      tierName: {
+      name: {
         type: DataTypes.STRING,
         allowNull: false,
         unique: true,
@@ -37,6 +37,6 @@ export default {
   },
 
   async down(queryInterface: QueryInterface) {
-    await queryInterface.dropTable("Tierings");
+    await queryInterface.dropTable("TierLevels");
   },
 };

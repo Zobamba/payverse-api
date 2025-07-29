@@ -1,6 +1,6 @@
 import { Model, DataTypes } from "sequelize";
 import sequelize from "../config/database";
-import Tiering from "./tiering";
+import TierLevel from "./tier-level";
 
 class TierLimit extends Model {
   public id!: string;
@@ -22,7 +22,7 @@ TierLimit.init(
       type: DataTypes.UUID,
       allowNull: false,
       references: {
-        model: "Tierings",
+        model: "TierLevels",
         key: "id",
       },
       onDelete: "CASCADE",
@@ -51,7 +51,7 @@ TierLimit.init(
   { sequelize, modelName: "TierLimit", timestamps: true }
 );
 
-TierLimit.belongsTo(Tiering, { foreignKey: "tierId" });
-Tiering.hasMany(TierLimit, { foreignKey: "tierId" });
+TierLimit.belongsTo(TierLevel, { foreignKey: "tierId" });
+TierLevel.hasMany(TierLimit, { foreignKey: "tierId" });
 
 export default TierLimit;

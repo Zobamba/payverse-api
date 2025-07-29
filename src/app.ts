@@ -1,6 +1,6 @@
 import express, { Response } from "express";
 import dotenv from "dotenv";
-import { registerRoutes } from "./routes";
+import { registerRoutes } from "./routes/v1";
 import errorHandler from "./helpers/error-handler";
 
 dotenv.config();

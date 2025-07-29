@@ -1,28 +1,28 @@
 import { Model, DataTypes } from "sequelize";
 import sequelize from "../config/database";
 
-class Tiering extends Model {
+class TierLevel extends Model {
   public id!: string;
-  public tierLevel!: number;
-  public tierName!: string;
+  public level!: number;
+  public name!: string;
   public transactionLimit!: number | null;
   public withdrawalLimit!: number | null;
   public perks!: string | null;
 }
 
-Tiering.init(
+TierLevel.init(
   {
     id: {
       type: DataTypes.UUID,
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true,
     },
-    tierLevel: {
+    level: {
       type: DataTypes.INTEGER,
       allowNull: false,
       defaultValue: 0,
     },
-    tierName: {
+    name: {
       type: DataTypes.STRING,
       allowNull: false,
       unique: true,
@@ -32,7 +32,7 @@ Tiering.init(
       allowNull: true,
     },
   },
-  { sequelize, modelName: "Tiering", timestamps: true }
+  { sequelize, modelName: "TierLevel", timestamps: true }
 );
 
-export default Tiering;
+export default TierLevel;

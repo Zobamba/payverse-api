@@ -1,7 +1,7 @@
 import { Model, DataTypes } from "sequelize";
 import sequelize from "../config/database";
 import User from "./user";
-import Tiering from "./tiering";
+import TierLevel from "./tier-level";
 
 class UserTier extends Model {
   public id!: string;
@@ -9,7 +9,7 @@ class UserTier extends Model {
   public tierId!: string;
   public assignedAt!: Date;
   public reasonForChange?: string;
-  public tier?: Tiering;
+  public tier!: TierLevel;
 }
 
 UserTier.init(
@@ -32,9 +32,9 @@ UserTier.init(
 );
 
 UserTier.belongsTo(User, { foreignKey: "userId" });
-UserTier.belongsTo(Tiering, { foreignKey: "tierId", as: "tier" });
+UserTier.belongsTo(TierLevel, { foreignKey: "tierId", as: "tier" });
 
 User.hasMany(UserTier, { foreignKey: "userId" });
-Tiering.hasMany(UserTier, { foreignKey: "tierId", as: "userTiers" });
+TierLevel.hasMany(UserTier, { foreignKey: "tierId", as: "userTiers" });
 
 export default UserTier;

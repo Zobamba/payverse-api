@@ -13,7 +13,7 @@ export default {
         type: DataTypes.UUID,
         allowNull: false,
         references: {
-          model: "Tierings",
+          model: "TierLevels",
           key: "id",
         },
         onDelete: "CASCADE",

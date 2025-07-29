@@ -20,7 +20,7 @@ import { throwError } from "../../helpers/throw-error";
 import MFA from "../../models/mfa";
 import Token from "../../models/token";
 import PasswordService from "../password/password.service";
-import Tiering from "../../models/tiering";
+import TierLevel from "../../models/tier-level";
 import UserTier from "../../models/user-tier";
 
 class AuthService {
@@ -58,7 +58,7 @@ class AuthService {
     await user.save();
 
     // Assign default tier now that the user is verified
-    const tierInstance = await Tiering.findOne({ where: { tierLevel: 0 } });
+    const tierInstance = await TierLevel.findOne({ where: { level: 0 } });
     const starterTier = tierInstance?.get({ plain: true });
     const plainUser = user.get({ plain: true });
 

@@ -5,36 +5,38 @@ export default {
   async up(queryInterface: QueryInterface) {
     const now = new Date();
 
-    await queryInterface.bulkInsert("Tierings", [
+    await queryInterface.bulkInsert("TierLevels", [
       {
         id: uuidv4(),
-        tierLevel: 0,
-        tierName: "Starter",
+        level: 0,
+        name: "Starter",
         perks: "Basic access. Complete KYC to unlock more features.",
         createdAt: now,
         updatedAt: now,
       },
       {
         id: uuidv4(),
-        tierLevel: 1,
-        tierName: "Silver",
-        perks: "Send and receive funds. Limited withdrawal and transaction limits.",
+        level: 1,
+        name: "Silver",
+        perks:
+          "Send and receive funds. Limited withdrawal and transaction limits.",
         createdAt: now,
         updatedAt: now,
       },
       {
         id: uuidv4(),
-        tierLevel: 2,
-        tierName: "Gold",
+        level: 2,
+        name: "Gold",
         perks: "Higher limits. Priority support. Verified address required.",
         createdAt: now,
         updatedAt: now,
       },
       {
         id: uuidv4(),
-        tierLevel: 3,
-        tierName: "Platinum",
-        perks: "Full access. Highest limits. Designed for power users and businesses.",
+        level: 3,
+        name: "Platinum",
+        perks:
+          "Full access. Highest limits. Designed for power users and businesses.",
         createdAt: now,
         updatedAt: now,
       },
@@ -42,8 +44,8 @@ export default {
   },
 
   async down(queryInterface: QueryInterface) {
-    await queryInterface.bulkDelete("Tierings", {
-      tierName: ["Starter", "Silver", "Gold", "Platinum"],
+    await queryInterface.bulkDelete("TierLevels", {
+      name: ["Starter", "Silver", "Gold", "Platinum"],
     });
   },
 };
