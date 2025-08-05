@@ -5,8 +5,6 @@ class TierLevel extends Model {
   public id!: string;
   public level!: number;
   public name!: string;
-  public transactionLimit!: number | null;
-  public withdrawalLimit!: number | null;
   public perks!: string | null;
 }
 

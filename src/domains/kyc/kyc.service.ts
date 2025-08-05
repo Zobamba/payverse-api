@@ -26,18 +26,13 @@ class KYCService {
 
     if (isVerified) throwError(400, "BVN already verified");
 
-    const latestTierInstance = await UserTier.findOne({
+    const userTier = await UserTier.findOne({
       where: { userId },
       include: [{ model: TierLevel, as: "tier" }],
       order: [["assignedAt", "DESC"]],
     });
 
-    const latestTier = latestTierInstance?.get({ plain: true });
-
-    if (!latestTier) throwError(400, "User tier not assigned");
-
-    const userTierLevel = latestTier.tier?.level;
-    if (userTierLevel !== 0) {
+    if (userTier) {
       throwError(403, "You have already completed KYC");
     }
 
@@ -78,7 +73,6 @@ class KYCService {
           ],
         },
         transaction,
-        lock: transaction.LOCK.UPDATE,
       });
 
       if (bvnRecords.length >= 3) {

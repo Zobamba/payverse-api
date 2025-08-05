@@ -8,14 +8,6 @@ export default {
     await queryInterface.bulkInsert("TierLevels", [
       {
         id: uuidv4(),
-        level: 0,
-        name: "Starter",
-        perks: "Basic access. Complete KYC to unlock more features.",
-        createdAt: now,
-        updatedAt: now,
-      },
-      {
-        id: uuidv4(),
         level: 1,
         name: "Silver",
         perks:
@@ -45,7 +37,7 @@ export default {
 
   async down(queryInterface: QueryInterface) {
     await queryInterface.bulkDelete("TierLevels", {
-      name: ["Starter", "Silver", "Gold", "Platinum"],
+      name: ["Silver", "Gold", "Platinum"],
     });
   },
 };

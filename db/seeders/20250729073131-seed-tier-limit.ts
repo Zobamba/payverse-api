@@ -20,25 +20,21 @@ export default {
 
     const limits = {
       NGN: {
-        Starter: { transaction: 5000, daily: 20000, monthly: 100000 },
         Silver: { transaction: 20000, daily: 100000, monthly: 500000 },
         Gold: { transaction: 50000, daily: 250000, monthly: 1000000 },
         Platinum: { transaction: 100000, daily: 500000, monthly: 5000000 },
       },
       USD: {
-        Starter: { transaction: 200, daily: 1000, monthly: 20000 },
         Silver: { transaction: 5000, daily: 25000, monthly: 100000 },
         Gold: { transaction: 10000, daily: 20000, monthly: 1000000 },
         Platinum: { transaction: 100000, daily: 500000, monthly: 5000000 },
       },
       EUR: {
-        Starter: { transaction: 180, daily: 900, monthly: 18000 },
         Silver: { transaction: 4500, daily: 22500, monthly: 90000 },
         Gold: { transaction: 9000, daily: 18000, monthly: 900000 },
         Platinum: { transaction: 90000, daily: 450000, monthly: 4500000 },
       },
       GBP: {
-        Starter: { transaction: 160, daily: 800, monthly: 16000 },
         Silver: { transaction: 4000, daily: 20000, monthly: 80000 },
         Gold: { transaction: 8000, daily: 16000, monthly: 800000 },
         Platinum: { transaction: 80000, daily: 400000, monthly: 4000000 },

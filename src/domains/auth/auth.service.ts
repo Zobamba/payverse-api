@@ -20,8 +20,6 @@ import { throwError } from "../../helpers/throw-error";
 import MFA from "../../models/mfa";
 import Token from "../../models/token";
 import PasswordService from "../password/password.service";
-import TierLevel from "../../models/tier-level";
-import UserTier from "../../models/user-tier";
 
 class AuthService {
   constructor(private readonly passwordService: typeof PasswordService) {}
@@ -56,22 +54,6 @@ class AuthService {
 
     user.set({ isVerified: true });
     await user.save();
-
-    // Assign default tier now that the user is verified
-    const tierInstance = await TierLevel.findOne({ where: { level: 0 } });
-    const starterTier = tierInstance?.get({ plain: true });
-    const plainUser = user.get({ plain: true });
-
-    if (!starterTier) {
-      throwError(500, "Default tier (Tier 0) not found");
-    }
-
-    await UserTier.create({
-      userId: plainUser.id,
-      tierId: starterTier.id,
-      assignedAt: new Date(),
-      reasonForChange: "Email verified",
-    });
   }
 
   public async login(payload: Login): Promise<{
