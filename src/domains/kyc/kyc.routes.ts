@@ -1,7 +1,7 @@
 import express from "express";
 import kycController from "./kyc.controller";
 import { validateBVNWithFace } from "./kyc.validation";
-import { validateToken, verifyAuthToken } from "../middlewares/auth-validate";
+import { validateToken, verifyAuthToken } from "../../middlewares/auth-validate";
 
 const router = express.Router();
 

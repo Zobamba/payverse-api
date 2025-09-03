@@ -8,7 +8,7 @@ import {
   resetPasswordValidation,
   changePasswordValidation,
 } from "./auth.validation";
-import { validateToken, verifyAuthToken } from "../middlewares/auth-validate";
+import { validateToken, verifyAuthToken } from "../../middlewares/auth-validate";
 
 const router = express.Router();
 

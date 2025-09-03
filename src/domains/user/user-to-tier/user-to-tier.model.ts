@@ -1,7 +1,7 @@
 import { Model, DataTypes } from "sequelize";
-import sequelize from "../config/database";
-import User from "./user";
-import TierLevel from "./tier-level";
+import sequelize from "../../../config/database";
+import User from "../user.model";
+import TierLevel from "../../tier-level/tier-level.model";
 
 class UserTier extends Model {
   public id!: string;

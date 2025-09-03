@@ -1,6 +1,6 @@
 import { Model, DataTypes } from "sequelize";
-import sequelize from "../config/database";
-import User from "./user";
+import sequelize from "../../config/database";
+import User from "../user/user.model";
 
 class MFA extends Model {
   public id!: string;

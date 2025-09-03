@@ -1,6 +1,6 @@
 import { Model, DataTypes } from "sequelize";
-import sequelize from "../config/database";
-import TierLevel from "./tier-level";
+import sequelize from "../../config/database";
+import TierLevel from "../tier-level/tier-level.model";
 
 class TierLimit extends Model {
   public id!: string;

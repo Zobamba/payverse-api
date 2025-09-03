@@ -1,8 +1,8 @@
 import { KYCResponse } from "./kyc.interface";
 import KYCVerificationService from "../../kyc-verifications/kyc-verifications.service";
-import KYC from "../../models/kyc";
-import UserTier from "../../models/user-tier";
-import TierLevel from "../../models/tier-level";
+import KYC from "./kyc.model";
+import UserTier from "../user/user-to-tier/user-to-tier.model";
+import TierLevel from "../tier-level/tier-level.model";
 import { throwError } from "../../helpers/throw-error";
 import logger from "../../helpers/logger";
 import { Op } from "sequelize";
@@ -120,6 +120,8 @@ class KYCService {
       throw err;
     }
   }
+
+  
 }
 
 export default new KYCService(KYCVerificationService);

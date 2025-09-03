@@ -1,4 +1,4 @@
-import User from "../../models/user";
+import User from "./user.model";
 import { throwError } from "../../helpers/throw-error";
 
 class UserService {

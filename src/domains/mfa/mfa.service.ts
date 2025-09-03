@@ -1,4 +1,4 @@
-import MFA from "../../models/mfa";
+import MFA from "./mfa.model";
 import { throwError } from "../../helpers/throw-error";
 import { signJsonWebToken } from "../../utils/auth";
 import speakeasy from "speakeasy";

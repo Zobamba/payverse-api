@@ -1,5 +1,5 @@
 import { body } from "express-validator";
-import validate from "../middlewares/form-validate";
+import validate from "../../middlewares/form-validate";
 import { MFATypes } from "../mfa/mfa.interface";
 
 const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\da-zA-Z]).{8,}$/;

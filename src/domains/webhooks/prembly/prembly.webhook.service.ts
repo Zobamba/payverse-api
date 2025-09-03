@@ -1,4 +1,4 @@
-import KYC from "../../../models/kyc";
+import KYC from "../../kyc/kyc.model";
 import {
   PremblyWebhookPayload,
   PremblyWebhookResponse,

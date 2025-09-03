@@ -3,7 +3,7 @@ import jwt from "jsonwebtoken";
 import speakeasy from "speakeasy";
 import { getCode } from "../../utils/code";
 import { verifyMFA } from "./auth.interface";
-import User from "../../models/user";
+import User from "../user/user.model";
 import {
   ChangePassword,
   RegisterUser,
@@ -17,28 +17,30 @@ import {
 import { handleEmailMFA } from "../../helpers/handle-email-mfa";
 import { signJsonWebToken, parseExpiry } from "../../utils/auth";
 import { throwError } from "../../helpers/throw-error";
-import MFA from "../../models/mfa";
-import Token from "../../models/token";
+import MFA from "../mfa/mfa.model";
+import Token from "../token/token.model";
 import PasswordService from "../password/password.service";
+import sequelize from "../../config/database";
 
 class AuthService {
-  constructor(private readonly passwordService: typeof PasswordService) {}
+  constructor(private readonly passwordService: typeof PasswordService) { }
 
-  public async register(payload: RegisterUser): Promise<User> {
+  public async register({ password, ...payload }: RegisterUser): Promise<User> {
+    const dbTransaction = await sequelize.transaction();
+
     const existingUser = await User.findOne({
       where: { email: payload.email },
     });
-    if (existingUser) throwError(400, "User already exists");
 
-    const hashedPassword = await bcrypt.hash(payload.password, 10);
-    const userInstance = await User.create({
-      ...payload,
-      password: hashedPassword,
-    });
+    if (existingUser) {
+      throwError(400, "User already exists");
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const userInstance = await User.create(payload);
 
     const user = userInstance.get({ plain: true });
-
-    await this.passwordService.createPasswordHistory(user.id, hashedPassword);
+    await this.passwordService.createPassword(user.id, hashedPassword);
 
     const token = signJsonWebToken({ id: user.id });
     await sendVerificationEmail(user, token);
@@ -233,43 +235,53 @@ class AuthService {
     userInstance.set({ password: hashedPassword });
     await userInstance.save();
 
-    await this.passwordService.updatePasswordHistory(userId, hashedPassword);
+    await this.passwordService.updatePassword(userId, hashedPassword);
   }
 
   public async changePassword(payload: ChangePassword): Promise<void> {
     const userId = payload.userId;
     const userInstance = await User.scope("withPassword").findByPk(userId);
+    const getUserActivePassword = await this.passwordService.getActivePassword(userId);
+
+    if (!getUserActivePassword) {
+      throwError(404, "User active password not found");
+    }
+
     if (!userInstance) throwError(404, "User not found");
+
+
+    const currentPassword = getUserActivePassword.password
 
     // const user = userInstance.get({ plain: true });
 
     const isMatch = await bcrypt.compare(
       payload.currentPassword,
-      userInstance.get("password")
+      currentPassword
     );
+
     if (!isMatch) throwError(401, "Current password is incorrect");
 
     const isSameAsCurrent = await bcrypt.compare(
       payload.newPassword,
-      userInstance.get("password")
+      currentPassword
     );
 
-    if (isSameAsCurrent)
+    if (isSameAsCurrent) {
       throwError(400, "You cannot reuse your current password");
+    }
 
-    const history = await this.passwordService.getPasswordHistory(userId);
+    const passwordHistory = await this.passwordService.getPasswords(userId);
 
-    for (const record of history) {
-      const reused = await bcrypt.compare(payload.newPassword, record.password);
-      if (reused) throwError(400, "You cannot reuse a recent password");
+    const isResusedPassword = passwordHistory.some(async (record) => {
+      return await bcrypt.compare(payload.newPassword, record.password);
+    });
+
+    if (isResusedPassword) {
+      throwError(400, "You cannot reuse a recent password");
     }
 
     const hashedPassword = await bcrypt.hash(payload.newPassword, 10);
-
-    userInstance.set({ password: hashedPassword });
-    await userInstance.save();
-
-    await this.passwordService.updatePasswordHistory(userId, hashedPassword);
+    await this.passwordService.updatePassword(userId, hashedPassword);
   }
 
   public async refreshAccessToken(refreshToken: string) {
