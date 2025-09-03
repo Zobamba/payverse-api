@@ -1,13 +1,14 @@
 import Password from "./password.model";
+import { Transaction } from 'sequelize'
 
 const PASSWORD_HISTORY_LIMIT = 3;
 
 class PasswordService {
-  public async createPassword(userId: string, hashedPassword: string) {
+  public async createPassword(userId: string, hashedPassword: string, transaction?: Transaction) {
     return await Password.create({
       userId,
       password: hashedPassword,
-    });
+    }, { transaction });
   }
 
   public async getPasswords(userId: string) {

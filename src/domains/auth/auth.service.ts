@@ -28,24 +28,33 @@ class AuthService {
   public async register({ password, ...payload }: RegisterUser): Promise<User> {
     const dbTransaction = await sequelize.transaction();
 
-    const existingUser = await User.findOne({
-      where: { email: payload.email },
-    });
+    try {
+      const existingUser = await User.findOne({
+        where: { email: payload.email },
+      });
 
-    if (existingUser) {
-      throwError(400, "User already exists");
+      if (existingUser) {
+        throwError(400, "User already exists");
+      }
+
+      const hashedPassword = await bcrypt.hash(password, 10);
+      const userInstance = await User.create(payload);
+
+      const user = userInstance.get({ plain: true });
+      await this.passwordService.createPassword(user.id, hashedPassword, dbTransaction);
+
+      const token = signJsonWebToken({ id: user.id });
+
+      await dbTransaction.commit();
+      await sendVerificationEmail(user, token);
+
+      return user;
+
+    } catch (error) {
+      await dbTransaction.rollback();
+      throw error
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const userInstance = await User.create(payload);
-
-    const user = userInstance.get({ plain: true });
-    await this.passwordService.createPassword(user.id, hashedPassword);
-
-    const token = signJsonWebToken({ id: user.id });
-    await sendVerificationEmail(user, token);
-
-    return user;
   }
 
   public async verifyEmail(req: any): Promise<void> {
