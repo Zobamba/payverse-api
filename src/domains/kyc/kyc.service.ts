@@ -1,8 +1,8 @@
 import { KYCResponse } from "./kyc.interface";
 import KYCVerificationService from "../../kyc-verifications/kyc-verifications.service";
+import TierLevelService from "../tier-level/tier-level.service";
+import UserTierService from "../user/user-to-tier/user-to-tier.service";
 import KYC from "./kyc.model";
-import UserTier from "../user/user-to-tier/user-to-tier.model";
-import TierLevel from "../tier-level/tier-level.model";
 import { throwError } from "../../helpers/throw-error";
 import logger from "../../helpers/logger";
 import { Op } from "sequelize";
@@ -10,7 +10,9 @@ import sequelize from "../../config/database";
 
 class KYCService {
   constructor(
-    private readonly kycVerificationService: typeof KYCVerificationService
+    private readonly kycVerificationService: typeof KYCVerificationService,
+    private readonly tierLevelService: typeof TierLevelService,
+    private readonly userTierService: typeof UserTierService
   ) {}
 
   public async verifyBVNWithFace(
@@ -26,11 +28,7 @@ class KYCService {
 
     if (isVerified) throwError(400, "BVN already verified");
 
-    const userTier = await UserTier.findOne({
-      where: { userId },
-      include: [{ model: TierLevel, as: "tier" }],
-      order: [["assignedAt", "DESC"]],
-    });
+    const userTier = await this.userTierService.mostRecentTier(userId);
 
     if (userTier) {
       throwError(403, "You have already completed KYC");
@@ -93,22 +91,24 @@ class KYCService {
         { transaction }
       );
 
-      const tierInstance = await TierLevel.findOne({
-        where: { level: 1 },
-        transaction,
-      });
-
-      const tierOne = tierInstance?.get({ plain: true });
+      // Use TierLevelService to get tier level 1
+      const tierOneInstance = await this.tierLevelService.getTierLevel(
+        1,
+        transaction
+      );
+      const tierOne = tierOneInstance
+        ? tierOneInstance.get({ plain: true })
+        : null;
 
       if (tierOne) {
-        await UserTier.create(
+        await this.userTierService.createUserTier(
           {
             userId,
             tierId: tierOne.id,
             assignedAt: new Date(),
             reasonForChange: "KYC verification passed",
           },
-          { transaction }
+          transaction
         );
       }
 
@@ -120,8 +120,10 @@ class KYCService {
       throw err;
     }
   }
-
-  
 }
 
-export default new KYCService(KYCVerificationService);
+export default new KYCService(
+  KYCVerificationService,
+  TierLevelService,
+  UserTierService
+);

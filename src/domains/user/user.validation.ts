@@ -1,5 +1,5 @@
 import { body } from "express-validator";
-import validate from "../../middlewares/form-validate";
+import { validate } from "../../middlewares/form-validate";
 
 export const updateProfile = [
   body("firstName")

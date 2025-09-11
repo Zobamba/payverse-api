@@ -18,12 +18,15 @@ import { handleEmailMFA } from "../../helpers/handle-email-mfa";
 import { signJsonWebToken, parseExpiry } from "../../utils/auth";
 import { throwError } from "../../helpers/throw-error";
 import MFA from "../mfa/mfa.model";
-import Token from "../token/token.model";
+import TokenService from "../token/token.service";
 import PasswordService from "../password/password.service";
 import sequelize from "../../config/database";
 
 class AuthService {
-  constructor(private readonly passwordService: typeof PasswordService) { }
+  constructor(
+    private readonly passwordService: typeof PasswordService,
+    private readonly tokenService: typeof TokenService
+  ) {}
 
   public async register({ password, ...payload }: RegisterUser): Promise<User> {
     const dbTransaction = await sequelize.transaction();
@@ -41,7 +44,11 @@ class AuthService {
       const userInstance = await User.create(payload);
 
       const user = userInstance.get({ plain: true });
-      await this.passwordService.createPassword(user.id, hashedPassword, dbTransaction);
+      await this.passwordService.createPassword(
+        user.id,
+        hashedPassword,
+        dbTransaction
+      );
 
       const token = signJsonWebToken({ id: user.id });
 
@@ -49,12 +56,10 @@ class AuthService {
       await sendVerificationEmail(user, token);
 
       return user;
-
     } catch (error) {
       await dbTransaction.rollback();
-      throw error
+      throw error;
     }
-
   }
 
   public async verifyEmail(req: any): Promise<void> {
@@ -208,7 +213,7 @@ class AuthService {
       process.env.JWT_REFRESH_TOKEN_EXPIRY
     );
 
-    await Token.create({
+    await this.tokenService.createToken({
       userId: user.id,
       token: refreshToken,
       type: "refresh",
@@ -250,7 +255,8 @@ class AuthService {
   public async changePassword(payload: ChangePassword): Promise<void> {
     const userId = payload.userId;
     const userInstance = await User.scope("withPassword").findByPk(userId);
-    const getUserActivePassword = await this.passwordService.getActivePassword(userId);
+    const getUserActivePassword =
+      await this.passwordService.getActivePassword(userId);
 
     if (!getUserActivePassword) {
       throwError(404, "User active password not found");
@@ -258,8 +264,7 @@ class AuthService {
 
     if (!userInstance) throwError(404, "User not found");
 
-
-    const currentPassword = getUserActivePassword.password
+    const currentPassword = getUserActivePassword.password;
 
     // const user = userInstance.get({ plain: true });
 
@@ -281,11 +286,11 @@ class AuthService {
 
     const passwordHistory = await this.passwordService.getPasswords(userId);
 
-    const isResusedPassword = passwordHistory.some(async (record) => {
+    const isReusedPassword = passwordHistory.some(async (record) => {
       return await bcrypt.compare(payload.newPassword, record.password);
     });
 
-    if (isResusedPassword) {
+    if (isReusedPassword) {
       throwError(400, "You cannot reuse a recent password");
     }
 
@@ -299,9 +304,7 @@ class AuthService {
     }
 
     // Find the refresh token in the database
-    const existingToken = await Token.findOne({
-      where: { token: refreshToken },
-    });
+    const existingToken = await this.tokenService.findByToken(refreshToken);
 
     if (!existingToken) {
       throwError(401, "Invalid refresh token");
@@ -341,4 +344,4 @@ class AuthService {
   }
 }
 
-export default new AuthService(PasswordService);
+export default new AuthService(PasswordService, TokenService);
