@@ -41,9 +41,14 @@ class AuthService {
       }
 
       const hashedPassword = await bcrypt.hash(password, 10);
-      const userInstance = await User.create(payload);
+      const userInstance = await User.create({
+        ...payload,
+        password: hashedPassword,
+      });
 
-      const user = userInstance.get({ plain: true });
+      const user = userInstance.toJSON();
+      delete user.password;
+
       await this.passwordService.createPassword(
         user.id,
         hashedPassword,
@@ -76,7 +81,7 @@ class AuthService {
     mfaToken: string;
     mfaOptions: string[];
   }> {
-    const userInstance = await User.scope("withPassword").findOne({
+    const userInstance = await User.findOne({
       where: { email: payload.email },
     });
 
@@ -93,7 +98,7 @@ class AuthService {
       throwError(400, "Invalid email or password");
     }
 
-    const user = userInstance.get({ plain: true });
+    const user = userInstance.toJSON();
 
     if (!user.isVerified) {
       throwError(400, "Please verify your email before logging in");
@@ -145,14 +150,13 @@ class AuthService {
   public async verifyMFA(payload: verifyMFA) {
     const decoded: any = jwt.verify(payload.mfaToken, process.env.JWT_SECRET!);
 
-    const userInstance = await User.scope("withoutPassword").findByPk(
-      decoded.data.id
-    );
+    const userInstance = await User.findByPk(decoded.data.id);
     if (!userInstance) {
       throwError(404, "User not found");
     }
-    if (!userInstance) throwError(404, "User not found");
-    const user = userInstance.get({ plain: true });
+
+    const user = userInstance.toJSON();
+    delete user.password;
 
     const mfaInstance = await MFA.findOne({
       where: {
@@ -163,7 +167,7 @@ class AuthService {
 
     if (!mfaInstance) throwError(400, "MFA method not found");
 
-    const mfaMethod = mfaInstance.get({ plain: true });
+    const mfaMethod = mfaInstance.toJSON();
     const secretKey = mfaMethod.secretKey;
 
     if (payload.mfaType === "totp") {
@@ -231,7 +235,7 @@ class AuthService {
     const userInstance = await User.findOne({ where: { email } });
     if (!userInstance) throwError(404, "User not found");
 
-    const user = userInstance.get({ plain: true });
+    const user = userInstance.toJSON();
 
     const token = signJsonWebToken({ id: user.id });
     await sendResetPasswordEmail(user, token);
@@ -254,7 +258,7 @@ class AuthService {
 
   public async changePassword(payload: ChangePassword): Promise<void> {
     const userId = payload.userId;
-    const userInstance = await User.scope("withPassword").findByPk(userId);
+    const userInstance = await User.findByPk(userId);
     const getUserActivePassword =
       await this.passwordService.getActivePassword(userId);
 
@@ -312,12 +316,12 @@ class AuthService {
 
     const decoded: any = jwt.verify(refreshToken, process.env.JWT_SECRET!);
 
-    const user = await User.scope("withoutPassword").findByPk(decoded.data.id);
+    const user = await User.findByPk(decoded.data.id);
     if (!user) {
       throwError(404, "User not found");
     }
 
-    const plainUser = user.get({ plain: true });
+    const plainUser = user.toJSON();
 
     // Issue new tokens
     const newAccessToken = signJsonWebToken(

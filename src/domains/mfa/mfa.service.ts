@@ -58,7 +58,7 @@ class MFAService {
       });
 
       const userInstance = await this.userService.getUserById(payload.userId);
-      const user = userInstance.get({ plain: true });
+      const user = userInstance.toJSON();
       await sendEnableMfaEmail(user);
 
       return {
@@ -81,7 +81,7 @@ class MFAService {
 
       if (payload.mfaType === "email") {
         const userInstance = await this.userService.getUserById(payload.userId);
-        const user = userInstance.get({ plain: true });
+        const user = userInstance.toJSON();
         await handleEmailMFA(user);
       }
       return { mfaToken };

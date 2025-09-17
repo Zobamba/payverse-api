@@ -32,9 +32,9 @@ UserTier.init(
 );
 
 UserTier.belongsTo(User, { foreignKey: "userId" });
-UserTier.belongsTo(TierLevel, { foreignKey: "tierId", as: "tier" });
-
 User.hasMany(UserTier, { foreignKey: "userId" });
+
+UserTier.belongsTo(TierLevel, { foreignKey: "tierId", as: "tier" });
 TierLevel.hasMany(UserTier, { foreignKey: "tierId", as: "userTiers" });
 
 export default UserTier;

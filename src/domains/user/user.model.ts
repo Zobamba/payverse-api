@@ -1,6 +1,6 @@
 import { Model, DataTypes } from "sequelize";
 import sequelize from "../../config/database";
-
+import TierLevel from "../tier-level/tier-level.model";
 class User extends Model {
   public id!: string;
   public firstName!: string;
@@ -9,6 +9,7 @@ class User extends Model {
   public email!: string;
   public password!: string;
   public isVerified!: boolean;
+  public currentTierId?: string;
 }
 
 User.init(
@@ -24,23 +25,19 @@ User.init(
     email: { type: DataTypes.STRING, allowNull: false, unique: true },
     password: { type: DataTypes.STRING, allowNull: false },
     isVerified: { type: DataTypes.BOOLEAN, defaultValue: false },
+    currentTierId: { type: DataTypes.UUID, allowNull: true },
   },
   {
     sequelize,
     modelName: "User",
     timestamps: true,
-    defaultScope: {
-      attributes: { exclude: ["password"] }, // default = without password
-    },
-    scopes: {
-      withPassword: {
-        attributes: { include: ["password"] },
-      },
-      withoutPassword: {
-        attributes: { exclude: ["password"] },
-      },
-    },
   }
 );
+
+// Associations
+User.belongsTo(TierLevel, {
+  foreignKey: "currentTierId",
+  as: "currentTierLevel",
+});
 
 export default User;

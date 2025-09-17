@@ -1,5 +1,6 @@
 import { Model, DataTypes } from "sequelize";
 import sequelize from "../../config/database";
+import User from "../user/user.model";
 
 class Token extends Model {
   public id!: string;
@@ -35,5 +36,8 @@ Token.init(
   },
   { sequelize, modelName: "Token", tableName: "Tokens", timestamps: true }
 );
+
+Token.belongsTo(User, { foreignKey: "userId", as: "user" });
+User.hasMany(Token, { foreignKey: "userId", as: "tokens" });
 
 export default Token;

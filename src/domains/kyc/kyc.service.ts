@@ -1,7 +1,7 @@
 import { KYCResponse } from "./kyc.interface";
 import KYCVerificationService from "../../kyc-verifications/kyc-verifications.service";
 import TierLevelService from "../tier-level/tier-level.service";
-import UserTierService from "../user/user-to-tier/user-to-tier.service";
+import UserTierService from "../user/user-tier/user-tier.service";
 import KYC from "./kyc.model";
 import { throwError } from "../../helpers/throw-error";
 import logger from "../../helpers/logger";
@@ -96,9 +96,7 @@ class KYCService {
         1,
         transaction
       );
-      const tierOne = tierOneInstance
-        ? tierOneInstance.get({ plain: true })
-        : null;
+      const tierOne = tierOneInstance ? tierOneInstance.toJSON() : null;
 
       if (tierOne) {
         await this.userTierService.createUserTier(

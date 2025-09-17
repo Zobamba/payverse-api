@@ -35,6 +35,14 @@ export default {
         allowNull: false,
         defaultValue: false,
       },
+      currentTierId: {
+        type: DataTypes.UUID,
+        allowNull: true,
+        references: {
+          model: "TierLevels",
+          key: "id",
+        },
+      },
       createdAt: {
         type: DataTypes.DATE,
         allowNull: false,

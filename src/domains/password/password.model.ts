@@ -2,14 +2,14 @@ import { Model, DataTypes } from "sequelize";
 import sequelize from "../../config/database";
 import User from "../user/user.model";
 
-class PasswordHistory extends Model {
+class Password extends Model {
   public id!: string;
   public userId!: string;
   public status!: "Active" | "Inactive";
   public password!: string;
 }
 
-PasswordHistory.init(
+Password.init(
   {
     id: {
       type: DataTypes.UUID,
@@ -35,10 +35,10 @@ PasswordHistory.init(
       allowNull: false,
     },
   },
-  { sequelize, modelName: "PasswordHistory", tableName: "PasswordHistories", timestamps: true }
+  { sequelize, modelName: "Password", tableName: "Passwords", timestamps: true }
 );
 
-PasswordHistory.belongsTo(User, { foreignKey: "userId" });
-User.hasMany(PasswordHistory, { foreignKey: "userId" });
+Password.belongsTo(User, { foreignKey: "userId" });
+User.hasMany(Password, { foreignKey: "userId" });
 
-export default PasswordHistory;
+export default Password;

@@ -1,6 +1,6 @@
-import { CreateUserTierData } from "./user-to-tier.interface";
+import { CreateUserTierData } from "./user-tier.interface";
 import TierLevel from "../../tier-level/tier-level.model";
-import UserTier from "./user-to-tier.model";
+import UserTier from "./user-tier.model";
 
 class UserTierService {
   public async createUserTier(data: CreateUserTierData, transaction?: any) {

@@ -2,7 +2,7 @@ import { QueryInterface, DataTypes } from "sequelize";
 
 export default {
   async up(queryInterface: QueryInterface) {
-    await queryInterface.createTable("PasswordHistories", {
+    await queryInterface.createTable("Passwords", {
       id: {
         allowNull: false,
         primaryKey: true,
@@ -41,6 +41,6 @@ export default {
   },
 
   async down(queryInterface: QueryInterface) {
-    await queryInterface.dropTable("PasswordHistories");
+    await queryInterface.dropTable("Passwords");
   },
 };
