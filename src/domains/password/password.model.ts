@@ -7,6 +7,9 @@ class Password extends Model {
   public userId!: string;
   public status!: "Active" | "Inactive";
   public password!: string;
+
+  // Association
+  public user?: User;
 }
 
 Password.init(
@@ -38,7 +41,6 @@ Password.init(
   { sequelize, modelName: "Password", tableName: "Passwords", timestamps: true }
 );
 
-Password.belongsTo(User, { foreignKey: "userId" });
-User.hasMany(Password, { foreignKey: "userId" });
+Password.belongsTo(User, { foreignKey: "userId", as: "user" });
 
 export default Password;

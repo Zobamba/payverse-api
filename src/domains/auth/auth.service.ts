@@ -26,7 +26,7 @@ class AuthService {
   constructor(
     private readonly passwordService: typeof PasswordService,
     private readonly tokenService: typeof TokenService
-  ) {}
+  ) { }
 
   public async register({ password, ...payload }: RegisterUser): Promise<User> {
     const dbTransaction = await sequelize.transaction();
@@ -83,63 +83,55 @@ class AuthService {
   }> {
     const userInstance = await User.findOne({
       where: { email: payload.email },
+      include: [
+        {
+          association: "passwords",
+          where: { isActive: true },
+          required: false,
+        }
+      ]
     });
 
     if (!userInstance) {
       throwError(400, "Invalid email or password");
     }
 
+    const activePassword = userInstance.passwords[0].password
+
+
+    if (!activePassword) {
+      throwError(400, "Invalid email or password");
+    }
+
     const isMatch = await bcrypt.compare(
       payload.password,
-      userInstance.get("password")
+      activePassword
     );
 
     if (!isMatch) {
       throwError(400, "Invalid email or password");
     }
 
-    const user = userInstance.toJSON();
-
-    if (!user.isVerified) {
+    if (!userInstance.isVerified) {
       throwError(400, "Please verify your email before logging in");
     }
 
     let userMFAs = await MFA.findAll({
-      where: { userId: user.id, isActive: true },
+      where: { userId: userInstance.id, isActive: true },
       attributes: ["mfaType"],
     });
 
-    let sentEmailCode = false;
 
     if (userMFAs.length === 0) {
-      const defaultMfaType = "email";
-
-      await handleEmailMFA(user); // ✅ await is required
-
-      await MFA.create({
-        userId: user.id,
-        mfaType: defaultMfaType,
-        isActive: true,
-      });
-
-      sentEmailCode = true;
-
-      userMFAs = await MFA.findAll({
-        where: { userId: user.id, isActive: true },
-        attributes: ["mfaType"],
-      });
+      await handleEmailMFA(userInstance); // ✅ await is require
     }
 
     const mfaToken = signJsonWebToken(
-      { id: user.id },
+      { id: userInstance.id },
       process.env.JWT_ACCESS_TOKEN_EXPIRY
     );
 
     const mfaOptions = userMFAs.map((mfa) => mfa.get("mfaType"));
-
-    if (!sentEmailCode && mfaOptions.includes("email")) {
-      await handleEmailMFA(user); // ✅ await again
-    }
 
     return {
       mfaToken,

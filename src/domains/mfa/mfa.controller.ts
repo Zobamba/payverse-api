@@ -5,13 +5,11 @@ import { buildResponse } from "../../helpers/build-response";
 const { sendSuccessRes } = buildResponse;
 
 class MFAController {
-  constructor(private readonly mfaService: typeof MFAService) {}
+  constructor(private readonly mfaService: typeof MFAService) { }
 
-  public enableMFA = asyncHandler(async (req, res) => {
-    const { mfaType, value } = req.body;
-    const userId = (req as any).user.id;
-
-    const result = await this.mfaService.enableMFA({ userId, mfaType, value });
+  public enableMFA = asyncHandler(async (req: any, res) => {
+    const userId = req.user.id;
+    const result = await this.mfaService.setupTotp({ userId, ...req.body });
     sendSuccessRes({
       res,
       message: "MFA setup initiated",
