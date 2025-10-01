@@ -1,23 +1,34 @@
-import User from "../../models/user";
+import User from "./user.model";
 import { throwError } from "../../helpers/throw-error";
 
 class UserService {
   public async getProfile(userId: string): Promise<User> {
-    const user = await User.scope("withoutPassword").findByPk(userId);
-    if (!user) throwError(404, "User not found");
+    const user = await User.findByPk(userId);
+    delete user?.dataValues.password;
+
+    if (!user) {
+      throwError(404, "User not found");
+    }
     return user;
   }
-  
 
   public async getUserById(userId: string): Promise<User> {
-    const user = await User.scope("withoutPassword").findByPk(userId);
-    if (!user) throwError(404, "User not found");
+    const user = await User.findByPk(userId);
+    delete user?.dataValues.password;
+
+    if (!user) {
+      throwError(404, "User not found");
+    }
     return user;
   }
 
   public async getAllUsers(): Promise<User[]> {
-    const users = await User.scope("withoutPassword").findAll();
-    if (!users || users.length === 0) throwError(404, "No users found");
+    const users = await User.findAll();
+    users.forEach((user) => delete user.dataValues.password);
+
+    if (!users || users.length === 0) {
+      throwError(404, "No users found");
+    }
     return users;
   }
 
@@ -26,7 +37,11 @@ class UserService {
     payload: Partial<User>
   ): Promise<User> {
     const user = await User.findByPk(userId);
-    if (!user) throwError(404, "User not found");
+    delete user?.dataValues.password;
+
+    if (!user) {
+      throwError(404, "User not found");
+    }
 
     await user.update(payload);
     return user;

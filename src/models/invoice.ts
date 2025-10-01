@@ -1,6 +1,6 @@
 import { Model, DataTypes } from "sequelize";
 import sequelize from "../config/database";
-import User from "./user";
+import User from "../domains/user/user.model";
 
 class Invoice extends Model {
   public id!: string;

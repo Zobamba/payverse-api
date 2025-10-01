@@ -1,17 +1,18 @@
-import PasswordHistory from "../../models/password-history";
+import Password from "./password.model";
+import { Transaction } from 'sequelize'
 
 const PASSWORD_HISTORY_LIMIT = 3;
 
 class PasswordService {
-  public async createPasswordHistory(userId: string, hashedPassword: string) {
-    return await PasswordHistory.create({
+  public async createPassword(userId: string, hashedPassword: string, transaction?: Transaction) {
+    return await Password.create({
       userId,
       password: hashedPassword,
-    });
+    }, { transaction });
   }
 
-  public async getPasswordHistory(userId: string) {
-    const history = await PasswordHistory.findAll({
+  public async getPasswords(userId: string) {
+    const history = await Password.findAll({
       where: { userId },
       order: [["createdAt", "DESC"]],
       limit: PASSWORD_HISTORY_LIMIT,
@@ -21,8 +22,8 @@ class PasswordService {
     return history;
   }
 
-  public async updatePasswordHistory(userId: string, hashedPassword: string) {
-    await PasswordHistory.update(
+  public async updatePassword(userId: string, hashedPassword: string) {
+    await Password.update(
       { status: "Inactive" },
       {
         where: {
@@ -32,10 +33,14 @@ class PasswordService {
       }
     );
 
-    await PasswordHistory.create({
-      userId,
-      password: hashedPassword,
+    await this.createPassword(userId, hashedPassword);
+  }
+
+  public async getActivePassword(userId: string) {
+    const password = await Password.findOne({
+      where: { userId, status: "Active" },
     });
+    return password;
   }
 }
 

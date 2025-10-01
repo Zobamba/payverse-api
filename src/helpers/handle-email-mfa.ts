@@ -1,4 +1,4 @@
-import User from "../models/user";
+import User from "../domains/user/user.model";
 import { generateVerificationCode, storeCode } from "../utils/code";
 import { sendVerificationCode } from "../utils/email";
 

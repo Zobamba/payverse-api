@@ -12,6 +12,9 @@ const envSchema = z.object({
   DB_DIALECT: z.string(),
   DB_URL: z.string(),
   ENVIRONMENT: z.enum(['development', 'production']).default('development'),
+  PREMBLY_API_KEY: z.string(),
+  PREMBLY_APP_ID: z.string(),
+  PREMBLY_BASE_URL: z.string(),
 })
 
 const envSchemaValidation = envSchema.safeParse(process.env)

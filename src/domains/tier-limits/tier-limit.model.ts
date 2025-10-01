@@ -1,11 +1,12 @@
 import { Model, DataTypes } from "sequelize";
-import sequelize from "../config/database";
-import Tiering from "./tiering";
+import sequelize from "../../config/database";
+import TierLevel from "../tier-level/tier-level.model";
 
 class TierLimit extends Model {
   public id!: string;
   public tierId!: string;
   public currency!: "NGN" | "USD" | "EUR" | "GBP";
+  public transactionLimit!: number;
   public dailyLimit!: number;
   public monthlyLimit!: number;
 }
@@ -21,30 +22,36 @@ TierLimit.init(
       type: DataTypes.UUID,
       allowNull: false,
       references: {
-        model: "Tierings",
+        model: "TierLevels",
         key: "id",
       },
       onDelete: "CASCADE",
     },
     currency: {
-      type: DataTypes.STRING,
+      type: DataTypes.ENUM("NGN", "USD", "EUR", "GBP"),
       allowNull: false,
+    },
+    transactionLimit: {
+      type: DataTypes.DECIMAL(15, 2),
+      allowNull: false,
+      defaultValue: 0.0,
     },
     dailyLimit: {
       type: DataTypes.DECIMAL(15, 2),
       allowNull: false,
-      defaultValue: 0.00,
+      defaultValue: 0.0,
     },
     monthlyLimit: {
       type: DataTypes.DECIMAL(15, 2),
       allowNull: false,
-      defaultValue: 0.00,
+      defaultValue: 0.0,
+      comment: "Monthly withdrawal limit (not applicable to deposits)",
     },
   },
   { sequelize, modelName: "TierLimit", timestamps: true }
 );
 
-TierLimit.belongsTo(Tiering, { foreignKey: "tierId" });
-Tiering.hasMany(TierLimit, { foreignKey: "tierId" });
+TierLimit.belongsTo(TierLevel, { foreignKey: "tierId" });
+TierLevel.hasMany(TierLimit, { foreignKey: "tierId" });
 
 export default TierLimit;

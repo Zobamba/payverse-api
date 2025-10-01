@@ -3,7 +3,7 @@ import jwt from "jsonwebtoken";
 import speakeasy from "speakeasy";
 import { getCode } from "../../utils/code";
 import { verifyMFA } from "./auth.interface";
-import User from "../../models/user";
+import User from "../user/user.model";
 import {
   ChangePassword,
   RegisterUser,
@@ -17,38 +17,61 @@ import {
 import { handleEmailMFA } from "../../helpers/handle-email-mfa";
 import { signJsonWebToken, parseExpiry } from "../../utils/auth";
 import { throwError } from "../../helpers/throw-error";
-import MFA from "../../models/mfa";
-import Token from "../../models/token";
+import MFA from "../mfa/mfa.model";
+import TokenService from "../token/token.service";
 import PasswordService from "../password/password.service";
+import sequelize from "../../config/database";
 
 class AuthService {
-  constructor(private readonly passwordService: typeof PasswordService) {}
+  constructor(
+    private readonly passwordService: typeof PasswordService,
+    private readonly tokenService: typeof TokenService
+  ) {}
 
-  public async register(payload: RegisterUser): Promise<User> {
-    const existingUser = await User.findOne({
-      where: { email: payload.email },
-    });
-    if (existingUser) throwError(400, "User already exists");
+  public async register({ password, ...payload }: RegisterUser): Promise<User> {
+    const dbTransaction = await sequelize.transaction();
 
-    const hashedPassword = await bcrypt.hash(payload.password, 10);
-    const userInstance = await User.create({
-      ...payload,
-      password: hashedPassword,
-    });
+    try {
+      const existingUser = await User.findOne({
+        where: { email: payload.email },
+      });
 
-    const user = userInstance.get({ plain: true });
+      if (existingUser) {
+        throwError(400, "User already exists");
+      }
 
-    await this.passwordService.createPasswordHistory(user.id, hashedPassword);
+      const hashedPassword = await bcrypt.hash(password, 10);
+      const userInstance = await User.create({
+        ...payload,
+        password: hashedPassword,
+      });
 
-    const token = signJsonWebToken({ id: user.id });
-    await sendVerificationEmail(user, token);
+      const user = userInstance.toJSON();
+      delete user.password;
 
-    return user;
+      await this.passwordService.createPassword(
+        user.id,
+        hashedPassword,
+        dbTransaction
+      );
+
+      const token = signJsonWebToken({ id: user.id });
+
+      await dbTransaction.commit();
+      await sendVerificationEmail(user, token);
+
+      return user;
+    } catch (error) {
+      await dbTransaction.rollback();
+      throw error;
+    }
   }
 
   public async verifyEmail(req: any): Promise<void> {
     const user = await User.findByPk(req.user.id);
     if (!user) throwError(400, "Invalid token");
+
+    if (user.isVerified) return;
 
     user.set({ isVerified: true });
     await user.save();
@@ -58,7 +81,7 @@ class AuthService {
     mfaToken: string;
     mfaOptions: string[];
   }> {
-    const userInstance = await User.scope("withPassword").findOne({
+    const userInstance = await User.findOne({
       where: { email: payload.email },
     });
 
@@ -75,7 +98,7 @@ class AuthService {
       throwError(400, "Invalid email or password");
     }
 
-    const user = userInstance.get({ plain: true });
+    const user = userInstance.toJSON();
 
     if (!user.isVerified) {
       throwError(400, "Please verify your email before logging in");
@@ -127,14 +150,13 @@ class AuthService {
   public async verifyMFA(payload: verifyMFA) {
     const decoded: any = jwt.verify(payload.mfaToken, process.env.JWT_SECRET!);
 
-    const userInstance = await User.scope("withoutPassword").findByPk(
-      decoded.data.id
-    );
+    const userInstance = await User.findByPk(decoded.data.id);
     if (!userInstance) {
       throwError(404, "User not found");
     }
-    if (!userInstance) throwError(404, "User not found");
-    const user = userInstance.get({ plain: true });
+
+    const user = userInstance.toJSON();
+    delete user.password;
 
     const mfaInstance = await MFA.findOne({
       where: {
@@ -145,7 +167,7 @@ class AuthService {
 
     if (!mfaInstance) throwError(400, "MFA method not found");
 
-    const mfaMethod = mfaInstance.get({ plain: true });
+    const mfaMethod = mfaInstance.toJSON();
     const secretKey = mfaMethod.secretKey;
 
     if (payload.mfaType === "totp") {
@@ -195,7 +217,7 @@ class AuthService {
       process.env.JWT_REFRESH_TOKEN_EXPIRY
     );
 
-    await Token.create({
+    await this.tokenService.createToken({
       userId: user.id,
       token: refreshToken,
       type: "refresh",
@@ -213,7 +235,7 @@ class AuthService {
     const userInstance = await User.findOne({ where: { email } });
     if (!userInstance) throwError(404, "User not found");
 
-    const user = userInstance.get({ plain: true });
+    const user = userInstance.toJSON();
 
     const token = signJsonWebToken({ id: user.id });
     await sendResetPasswordEmail(user, token);
@@ -231,43 +253,53 @@ class AuthService {
     userInstance.set({ password: hashedPassword });
     await userInstance.save();
 
-    await this.passwordService.updatePasswordHistory(userId, hashedPassword);
+    await this.passwordService.updatePassword(userId, hashedPassword);
   }
 
   public async changePassword(payload: ChangePassword): Promise<void> {
     const userId = payload.userId;
-    const userInstance = await User.scope("withPassword").findByPk(userId);
+    const userInstance = await User.findByPk(userId);
+    const getUserActivePassword =
+      await this.passwordService.getActivePassword(userId);
+
+    if (!getUserActivePassword) {
+      throwError(404, "User active password not found");
+    }
+
     if (!userInstance) throwError(404, "User not found");
+
+    const currentPassword = getUserActivePassword.password;
 
     // const user = userInstance.get({ plain: true });
 
     const isMatch = await bcrypt.compare(
       payload.currentPassword,
-      userInstance.get("password")
+      currentPassword
     );
+
     if (!isMatch) throwError(401, "Current password is incorrect");
 
     const isSameAsCurrent = await bcrypt.compare(
       payload.newPassword,
-      userInstance.get("password")
+      currentPassword
     );
 
-    if (isSameAsCurrent)
+    if (isSameAsCurrent) {
       throwError(400, "You cannot reuse your current password");
+    }
 
-    const history = await this.passwordService.getPasswordHistory(userId);
+    const passwordHistory = await this.passwordService.getPasswords(userId);
 
-    for (const record of history) {
-      const reused = await bcrypt.compare(payload.newPassword, record.password);
-      if (reused) throwError(400, "You cannot reuse a recent password");
+    const isReusedPassword = passwordHistory.some(async (record) => {
+      return await bcrypt.compare(payload.newPassword, record.password);
+    });
+
+    if (isReusedPassword) {
+      throwError(400, "You cannot reuse a recent password");
     }
 
     const hashedPassword = await bcrypt.hash(payload.newPassword, 10);
-
-    userInstance.set({ password: hashedPassword });
-    await userInstance.save();
-
-    await this.passwordService.updatePasswordHistory(userId, hashedPassword);
+    await this.passwordService.updatePassword(userId, hashedPassword);
   }
 
   public async refreshAccessToken(refreshToken: string) {
@@ -276,9 +308,7 @@ class AuthService {
     }
 
     // Find the refresh token in the database
-    const existingToken = await Token.findOne({
-      where: { token: refreshToken },
-    });
+    const existingToken = await this.tokenService.findByToken(refreshToken);
 
     if (!existingToken) {
       throwError(401, "Invalid refresh token");
@@ -286,12 +316,12 @@ class AuthService {
 
     const decoded: any = jwt.verify(refreshToken, process.env.JWT_SECRET!);
 
-    const user = await User.scope("withoutPassword").findByPk(decoded.data.id);
+    const user = await User.findByPk(decoded.data.id);
     if (!user) {
       throwError(404, "User not found");
     }
 
-    const plainUser = user.get({ plain: true });
+    const plainUser = user.toJSON();
 
     // Issue new tokens
     const newAccessToken = signJsonWebToken(
@@ -318,4 +348,4 @@ class AuthService {
   }
 }
 
-export default new AuthService(PasswordService);
+export default new AuthService(PasswordService, TokenService);

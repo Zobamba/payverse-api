@@ -2,21 +2,30 @@ import { QueryInterface, DataTypes } from "sequelize";
 
 export default {
   async up(queryInterface: QueryInterface) {
-    await queryInterface.createTable("Tierings", {
+    await queryInterface.createTable("Passwords", {
       id: {
         allowNull: false,
         primaryKey: true,
         type: DataTypes.UUID,
         defaultValue: DataTypes.UUIDV4,
       },
-      tierName: {
+      userId: {
+        type: DataTypes.UUID,
+        allowNull: false,
+        references: {
+          model: "Users",
+          key: "id",
+        },
+        onDelete: "CASCADE",
+      },
+      status: {
+        type: DataTypes.ENUM("Active", "Inactive"),
+        allowNull: false,
+        defaultValue: "Active",
+      },
+      password: {
         type: DataTypes.STRING,
         allowNull: false,
-        unique: true,
-      },
-      perks: {
-        type: DataTypes.TEXT,
-        allowNull: true,
       },
       createdAt: {
         type: DataTypes.DATE,
@@ -32,6 +41,6 @@ export default {
   },
 
   async down(queryInterface: QueryInterface) {
-    await queryInterface.dropTable("Tierings");
+    await queryInterface.dropTable("Passwords");
   },
 };

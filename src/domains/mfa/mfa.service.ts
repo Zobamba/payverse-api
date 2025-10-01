@@ -1,4 +1,4 @@
-import MFA from "../../models/mfa";
+import MFA from "./mfa.model";
 import { throwError } from "../../helpers/throw-error";
 import { signJsonWebToken } from "../../utils/auth";
 import speakeasy from "speakeasy";
@@ -58,7 +58,7 @@ class MFAService {
       });
 
       const userInstance = await this.userService.getUserById(payload.userId);
-      const user = userInstance.get({ plain: true });
+      const user = userInstance.toJSON();
       await sendEnableMfaEmail(user);
 
       return {
@@ -81,7 +81,7 @@ class MFAService {
 
       if (payload.mfaType === "email") {
         const userInstance = await this.userService.getUserById(payload.userId);
-        const user = userInstance.get({ plain: true });
+        const user = userInstance.toJSON();
         await handleEmailMFA(user);
       }
       return { mfaToken };
