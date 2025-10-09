@@ -4,7 +4,6 @@ import { throwError } from "../../helpers/throw-error";
 class UserService {
   public async getProfile(userId: string): Promise<User> {
     const user = await User.findByPk(userId);
-    delete user?.dataValues.password;
 
     if (!user) {
       throwError(404, "User not found");
@@ -14,17 +13,15 @@ class UserService {
 
   public async getUserById(userId: string): Promise<User> {
     const user = await User.findByPk(userId);
-    delete user?.dataValues.password;
 
     if (!user) {
       throwError(404, "User not found");
     }
-    return user;
+    return user.toJSON() as User;
   }
 
   public async getAllUsers(): Promise<User[]> {
     const users = await User.findAll();
-    users.forEach((user) => delete user.dataValues.password);
 
     if (!users || users.length === 0) {
       throwError(404, "No users found");
@@ -37,7 +34,6 @@ class UserService {
     payload: Partial<User>
   ): Promise<User> {
     const user = await User.findByPk(userId);
-    delete user?.dataValues.password;
 
     if (!user) {
       throwError(404, "User not found");

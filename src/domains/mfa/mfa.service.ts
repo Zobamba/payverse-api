@@ -2,10 +2,12 @@ import MFA from "./mfa.model";
 import { throwError } from "../../helpers/throw-error";
 import speakeasy from "speakeasy";
 import qrcode from "qrcode";
-import UserService from "../user/user.service";
 import { enableMFA, MFAResponse, MFATypes } from "./mfa.interface";
-class MFAService {
+import { sendEnableMfaEmail } from "../../utils/email";
+import UserService from "../user/user.service";
 
+class MFAService {
+  constructor(private readonly userService: typeof UserService) {}
   public async setupTotp(payload: enableMFA): Promise<MFAResponse> {
     const existingMFA = await MFA.findOne({
       where: {
@@ -28,6 +30,7 @@ class MFAService {
       secret: secret.base32,
       encoding: "base32",
     });
+    console.log("TOTP Code (for testing):", code);
 
     const qrCodeDataURL = await qrcode.toDataURL(secret.otpauth_url);
 
@@ -40,7 +43,7 @@ class MFAService {
 
     return {
       qrCode: qrCodeDataURL,
-    }
+    };
   }
 
   public async completeTotpSetup(userId: string): Promise<void> {
@@ -56,14 +59,18 @@ class MFAService {
       return throwError(400, "No pending TOTP setup found");
     }
 
-    mfaRecord.isActive = true;
-    await mfaRecord.save();
+    await mfaRecord.update({ isActive: true });
 
-    // TODO: trigger email notification to user to let them knowo they have successfully enabled TOTP MFA
+    // TODO: trigger email notification to user to let them know they have successfully enabled TOTP MFA
+    // const user = await this.userService.getUserById(userId);
+    // await sendEnableMfaEmail(user);
   }
 
-
-  public async verifyTotp(code: string, userId: string, mfaType: string): Promise<boolean> {
+  public async verifyTotp(
+    code: string,
+    userId: string,
+    mfaType: string
+  ): Promise<boolean> {
     const mfaRecord = await MFA.findOne({
       where: {
         userId,
@@ -76,15 +83,17 @@ class MFAService {
       return throwError(400, "MFA method not enabled");
     }
 
+    const cleanCode = code.toString().replace(/\s/g, "");
+
     const isVerified = speakeasy.totp.verify({
       secret: mfaRecord.secretKey,
       encoding: "base32",
-      token: code,
+      token: cleanCode,
       window: 1,
     });
 
-    return isVerified
+    return isVerified;
   }
 }
 
-export default new MFAService();
+export default new MFAService(UserService);

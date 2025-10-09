@@ -26,10 +26,6 @@ export default {
         allowNull: false,
         unique: true,
       },
-      password: {
-        type: DataTypes.STRING,
-        allowNull: false,
-      },
       isVerified: {
         type: DataTypes.BOOLEAN,
         allowNull: false,

@@ -2,6 +2,7 @@ import { Model, DataTypes } from "sequelize";
 import sequelize from "../../config/database";
 import TierLevel from "../tier-level/tier-level.model";
 import Password from "../password/password.model";
+
 class User extends Model {
   public id!: string;
   public firstName!: string;

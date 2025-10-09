@@ -26,7 +26,7 @@ class AuthService {
   constructor(
     private readonly passwordService: typeof PasswordService,
     private readonly tokenService: typeof TokenService
-  ) { }
+  ) {}
 
   public async register({ password, ...payload }: RegisterUser): Promise<User> {
     const dbTransaction = await sequelize.transaction();
@@ -47,7 +47,6 @@ class AuthService {
       });
 
       const user = userInstance.toJSON();
-      delete user.password;
 
       await this.passwordService.createPassword(
         user.id,
@@ -86,57 +85,96 @@ class AuthService {
       include: [
         {
           association: "passwords",
-          where: { isActive: true },
+          where: { status: "Active" },
           required: false,
-        }
-      ]
+        },
+      ],
+      raw: false,
+      nest: true,
     });
 
     if (!userInstance) {
       throwError(400, "Invalid email or password");
     }
 
-    const activePassword = userInstance.passwords[0].password
+    // Get the raw data to access passwords association
+    const userData = userInstance.get({ plain: true });
 
+    if (!userData.passwords || userData.passwords.length === 0) {
+      throwError(400, "Invalid email or password");
+    }
+
+    const activePassword = userData.passwords[0].password;
 
     if (!activePassword) {
       throwError(400, "Invalid email or password");
     }
 
-    const isMatch = await bcrypt.compare(
-      payload.password,
-      activePassword
-    );
+    const isMatch = await bcrypt.compare(payload.password, activePassword);
 
     if (!isMatch) {
       throwError(400, "Invalid email or password");
     }
 
-    if (!userInstance.isVerified) {
+    if (!userData.isVerified) {
       throwError(400, "Please verify your email before logging in");
     }
 
     let userMFAs = await MFA.findAll({
-      where: { userId: userInstance.id, isActive: true },
+      where: { userId: userData.id, isActive: true },
       attributes: ["mfaType"],
+      raw: true,
     });
 
-
     if (userMFAs.length === 0) {
-      await handleEmailMFA(userInstance); // ✅ await is require
+      await handleEmailMFA(userData);
     }
 
     const mfaToken = signJsonWebToken(
-      { id: userInstance.id },
+      { id: userData.id, type: "mfa", isEmail: userMFAs.length == 0 },
       process.env.JWT_ACCESS_TOKEN_EXPIRY
     );
 
-    const mfaOptions = userMFAs.map((mfa) => mfa.get("mfaType"));
+    const mfaOptions = userMFAs.map((mfa) => mfa.mfaType);
 
     return {
       mfaToken,
       mfaOptions,
     };
+  }
+
+  private async verifyEmailMFA(userId: string, code: string) {
+    const expectedCode = await getCode(userId, "email");
+
+    if (!expectedCode || code !== expectedCode) {
+      throwError(400, "Invalid verification code");
+    }
+  }
+
+  private async verifyTotpMFA(userId: string, code: string, mfaType: string) {
+    const mfaMethod = await MFA.findOne({
+      where: {
+        userId,
+        mfaType,
+      },
+    });
+
+    if (!mfaMethod) throwError(400, "MFA method not found");
+
+    const secretKey = mfaMethod.secretKey;
+
+    const verified = speakeasy.totp.verify({
+      secret: secretKey!,
+      encoding: "base32",
+      token: code,
+      window: 1,
+    });
+
+    if (!verified) throwError(400, "Invalid TOTP code");
+
+    if (!mfaMethod.isActive) {
+      await mfaMethod.update({ isActive: true });
+    }
   }
 
   public async verifyMFA(payload: verifyMFA) {
@@ -150,76 +188,21 @@ class AuthService {
     const user = userInstance.toJSON();
     delete user.password;
 
-    const mfaInstance = await MFA.findOne({
-      where: {
-        userId: user.id,
-        mfaType: payload.mfaType,
-      },
-    });
-
-    if (!mfaInstance) throwError(400, "MFA method not found");
-
-    const mfaMethod = mfaInstance.toJSON();
-    const secretKey = mfaMethod.secretKey;
-
-    if (payload.mfaType === "totp") {
-      const verified = speakeasy.totp.verify({
-        secret: secretKey!,
-        encoding: "base32",
-        token: payload.code,
-        window: 1,
-      });
-
-      console.log("code", secretKey);
-      console.log("Verified TOTP:", verified);
-
-      if (!verified) throwError(400, "Invalid TOTP code");
-
-      if (!mfaMethod.isActive) {
-        await mfaInstance.update({ isActive: true });
-      }
-    } else if (payload.mfaType === "email" || payload.mfaType === "sms") {
-      let expectedCode: string | null;
-
-      if (mfaMethod.isActive) {
-        // During login, retrieve code from Redis
-        expectedCode = await getCode(user.id, payload.mfaType);
-      } else {
-        // During MFA enabling, use secretKey from the database
-        expectedCode = secretKey;
-      }
-
-      if (!expectedCode || payload.code !== expectedCode) {
-        throwError(400, "Invalid verification code");
-      }
-
-      if (!mfaMethod.isActive) {
-        await mfaInstance.update({ isActive: true });
-      }
+    if (decoded.data.isEmail) {
+      await this.verifyEmailMFA(user.id, payload.code);
+    } else if (payload.mfaType === "totp") {
+      await this.verifyTotpMFA(user.id, payload.code, payload.mfaType);
     } else {
       throwError(400, "Invalid MFA type");
     }
 
-    const accessToken = signJsonWebToken(
-      { id: user.id },
-      process.env.JWT_ACCESS_TOKEN_EXPIRY
-    );
-    const refreshToken = signJsonWebToken(
-      { id: user.id },
-      process.env.JWT_REFRESH_TOKEN_EXPIRY
-    );
-
-    await this.tokenService.createToken({
-      userId: user.id,
-      token: refreshToken,
-      type: "refresh",
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-    });
+    const { accessToken, refreshToken } =
+      await this.tokenService.generateTokens(user.id);
 
     return {
       accessToken,
       refreshToken,
-      user: user,
+      user,
     };
   }
 
@@ -251,6 +234,9 @@ class AuthService {
   public async changePassword(payload: ChangePassword): Promise<void> {
     const userId = payload.userId;
     const userInstance = await User.findByPk(userId);
+
+    if (!userInstance) throwError(404, "User not found");
+
     const getUserActivePassword =
       await this.passwordService.getActivePassword(userId);
 
@@ -258,11 +244,12 @@ class AuthService {
       throwError(404, "User active password not found");
     }
 
-    if (!userInstance) throwError(404, "User not found");
-
     const currentPassword = getUserActivePassword.password;
 
-    // const user = userInstance.get({ plain: true });
+    // Add safety check for currentPassword
+    if (!currentPassword) {
+      throwError(404, "Current password not found");
+    }
 
     const isMatch = await bcrypt.compare(
       payload.currentPassword,
@@ -282,12 +269,24 @@ class AuthService {
 
     const passwordHistory = await this.passwordService.getPasswords(userId);
 
-    const isReusedPassword = passwordHistory.some(async (record) => {
-      return await bcrypt.compare(payload.newPassword, record.password);
-    });
+    // Add safety checks for password history
+    const validPasswordHistory = passwordHistory.filter(
+      (record) =>
+        record && record.password && typeof record.password === "string"
+    );
 
-    if (isReusedPassword) {
-      throwError(400, "You cannot reuse a recent password");
+    if (validPasswordHistory.length > 0) {
+      const passwordChecks = await Promise.all(
+        validPasswordHistory.map(async (record) => {
+          return await bcrypt.compare(payload.newPassword, record.password);
+        })
+      );
+
+      const isReusedPassword = passwordChecks.some(Boolean);
+
+      if (isReusedPassword) {
+        throwError(400, "You cannot reuse a recent password");
+      }
     }
 
     const hashedPassword = await bcrypt.hash(payload.newPassword, 10);
@@ -315,20 +314,15 @@ class AuthService {
 
     const plainUser = user.toJSON();
 
-    // Issue new tokens
-    const newAccessToken = signJsonWebToken(
-      { id: plainUser.id, type: "access" },
-      process.env.JWT_ACCESS_TOKEN_EXPIRY
-    );
-    const newRefreshToken = signJsonWebToken(
-      { id: plainUser.id, type: "refresh" },
-      process.env.JWT_REFRESH_TOKEN_EXPIRY
-    );
+    // Generate new tokens using TokenService
+    const { accessToken: newAccessToken, refreshToken: newRefreshToken } =
+      await this.tokenService.generateTokens(plainUser.id);
 
+    // Update the existing token record
     await existingToken.update({
       token: newRefreshToken,
       expiresAt: new Date(
-        Date.now() + parseExpiry(process.env.JWT_REFRESH_TOKEN_EXPIRY)
+        Date.now() + parseExpiry(process.env.JWT_REFRESH_TOKEN_EXPIRY!)
       ),
     });
 

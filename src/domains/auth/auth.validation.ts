@@ -45,11 +45,7 @@ export const verifyMFAValidation = [
     .withMessage("MFA token is required")
     .isString()
     .withMessage("MFA token must be a string"),
-  body("mfaType")
-    .exists()
-    .withMessage("MFA type is required")
-    .isIn(MFATypes)
-    .withMessage(`MFA type must be one of ${MFATypes.join(", ")}`),
+  body("mfaType").exists().withMessage("MFA type is required").optional(),
   body("code")
     .exists()
     .withMessage("Code is required")

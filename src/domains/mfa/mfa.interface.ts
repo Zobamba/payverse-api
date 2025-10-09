@@ -4,7 +4,6 @@ export type MFAType = (typeof MFATypes)[number];
 export interface enableMFA {
   userId: string;
   mfaType: MFAType;
-  value?: string;
 }
 
 export interface MFAResponse {
@@ -12,4 +11,3 @@ export interface MFAResponse {
   mfaToken?: string;
   secretKey?: string;
 }
-
