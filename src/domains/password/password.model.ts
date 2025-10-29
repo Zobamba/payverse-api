@@ -1,6 +1,5 @@
 import { Model, DataTypes } from "sequelize";
 import sequelize from "../../config/database";
-import User from "../user/user.model";
 
 class Password extends Model {
   public id!: string;
@@ -37,8 +36,5 @@ Password.init(
   },
   { sequelize, modelName: "Password", tableName: "Passwords", timestamps: true }
 );
-
-Password.belongsTo(User, { foreignKey: "userId" });
-User.hasMany(Password, { foreignKey: "userId" });
 
 export default Password;

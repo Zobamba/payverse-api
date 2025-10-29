@@ -8,7 +8,7 @@ import {
   resetPasswordValidation,
   changePasswordValidation,
 } from "./auth.validation";
-import { validateToken, verifyAuthToken } from "../../middlewares/auth-validate";
+import { auth } from "../../middlewares/auth-validate";
 
 const router = express.Router();
 
@@ -24,12 +24,7 @@ router.post("/register", registerValidation, authController.register);
  * @description Verify email
  * @returns success message
  */
-router.get(
-  "/verify-email",
-  verifyAuthToken,
-  validateToken,
-  authController.verifyEmail
-);
+router.get("/verify-email", auth, authController.verifyEmail);
 
 /**
  * @post /api/auth/login
@@ -74,8 +69,7 @@ router.post(
  */
 router.post(
   "/change-password",
-  verifyAuthToken,
-  validateToken,
+  auth,
   changePasswordValidation,
   authController.changePassword
 );

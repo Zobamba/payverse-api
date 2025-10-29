@@ -1,10 +1,7 @@
 import express from "express";
 import kycController from "./kyc.controller";
 import { validateBVNWithFace } from "./kyc.validation";
-import {
-  validateToken,
-  verifyAuthToken,
-} from "../../middlewares/auth-validate";
+import { auth } from "../../middlewares/auth-validate";
 
 const router = express.Router();
 
@@ -15,8 +12,7 @@ const router = express.Router();
  */
 router.post(
   "/bvn-with-face",
-  verifyAuthToken,
-  validateToken,
+  auth,
   validateBVNWithFace,
   kycController.verifyBVNWithFace
 );

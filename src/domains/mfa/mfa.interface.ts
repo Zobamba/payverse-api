@@ -1,7 +1,9 @@
+export const MFATypes = ["totp"] as const;
+export type MFAType = (typeof MFATypes)[number];
+
 export interface enableMFA {
   userId: string;
-  mfaType: string;
-  value?: string;
+  mfaType: MFAType;
 }
 
 export interface MFAResponse {
@@ -9,5 +11,3 @@ export interface MFAResponse {
   mfaToken?: string;
   secretKey?: string;
 }
-
-export const MFATypes = ["totp", "sms", "email"] as const;

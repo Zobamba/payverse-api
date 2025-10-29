@@ -1,11 +1,12 @@
 import { Model, DataTypes } from "sequelize";
 import sequelize from "../../config/database";
 import User from "../user/user.model";
+import { MFAType, MFATypes } from "./mfa.interface";
 
 class MFA extends Model {
   public id!: string;
   public userId!: string;
-  public mfaType!: "email" | "sms" | "authenticator";
+  public mfaType!: MFAType;
   public secretKey!: string;
   public isActive!: boolean;
 }
@@ -19,7 +20,7 @@ MFA.init(
     },
     userId: { type: DataTypes.UUID, allowNull: false },
     mfaType: {
-      type: DataTypes.STRING,
+      type: DataTypes.ENUM(...MFATypes),
       allowNull: false,
     },
     secretKey: {
