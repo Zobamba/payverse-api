@@ -4,6 +4,6 @@ import { sendVerificationCode } from "../utils/email";
 
 export async function handleEmailMFA(user: User): Promise<void> {
   const verificationCode = generateVerificationCode();
-  await sendVerificationCode(user, verificationCode);
+  await sendVerificationCode(user.email, user.firstName, verificationCode);
   await storeCode(user.id, "email", verificationCode, 10);
 }
