@@ -1,6 +1,7 @@
 import nodemailer from "nodemailer";
-import Mailgen from "mailgen";
-import User from "../domains/user/user.model";
+import hbs from "handlebars";
+import fs from "fs";
+import path from "path";
 
 const transporter = nodemailer.createTransport({
   service: "gmail",
@@ -10,170 +11,126 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-const MailGenerator = new Mailgen({
-  theme: "default",
-  product: {
-    name: "PayVerse Team",
-    link: "https://mailgen.js/",
-  },
-});
+function renderTemplate(templateName: string, data: any) {
+  const baseDir = path.join(process.cwd(), "src/email-templates");
+  const templatePath = path.join(baseDir, `${templateName}.hbs`);
+  const layoutPath = path.join(baseDir, "layouts/main.hbs");
+  const partialsDir = path.join(baseDir, "partials");
 
-export const sendVerificationEmail = async (user: User, token: string) => {
-  const url = `${process.env.FRONTEND_URL}/verify-email?token=${token}`;
-
-  const email = {
-    body: {
-      name: user.firstName,
-      intro:
-        "We are delighted to have you on board. With PayVerse, you get effortless comprehensive financial solution such as, Bank transfers, Invoice management, Virtual cards, Multi-currency virtual accounts, cross-currency paymenyts, and real-time analytics - all in one platform!.",
-      action: {
-        instructions: "Use the link below to verify your email address",
-        button: {
-          color: "#1da1f2", // Optional action button color
-          text: "Verify",
-          link: `${url}`,
-        },
-      },
-      outro:
-        "Need help, or have questions? Just reply to this email, we'd love to help.",
-    },
-  };
-
-  const emailBody = MailGenerator.generate(email);
-
-  const mailOptions = {
-    from: '"PayVerse" <custom@example.com>',
-    to: user.email,
-    subject: "[PayVerse] Verify your email",
-    html: emailBody,
-  };
-
-  return new Promise((resolve, reject) => {
-    transporter.sendMail(mailOptions, (error, info) => {
-      if (error) {
-        console.log(error);
-        return reject({ message: "Error sending email" });
-      }
-      console.log(`Email sent: ${info.response}`);
-      return resolve({ message: "Email sent successfully" });
-    });
+  // Register partials
+  fs.readdirSync(partialsDir).forEach((file) => {
+    const partialName = path.basename(file, ".hbs");
+    const partialTemplate = fs.readFileSync(
+      path.join(partialsDir, file),
+      "utf8"
+    );
+    hbs.registerPartial(partialName, partialTemplate);
   });
-};
 
-export const sendResetPasswordEmail = async (user: User, token: string) => {
-  const url = `${process.env.FRONTEND_URL}/reset-password?token=${token}`;
+  // Compile main template
+  const templateSource = fs.readFileSync(templatePath, "utf8");
+  const template = hbs.compile(templateSource);
+  const body = template(data);
 
-  const email = {
-    body: {
-      name: user.firstName,
-      intro: "We’ve received your request to reset your password.",
-      action: {
-        instructions: "Please click the link below to complete the reset.",
-        button: {
-          color: "#1da1f2", // Optional action button color
-          text: "Reset Password",
-          link: `${url}`,
-        },
-      },
-      outro:
-        "Need help, or have questions? Just reply to this email, we'd love to help.",
-    },
-  };
+  // Compile layout
+  const layoutSource = fs.readFileSync(layoutPath, "utf8");
+  const layout = hbs.compile(layoutSource);
 
-  const emailBody = MailGenerator.generate(email);
-
-  const mailOptions = {
-    from: '"PayVerse" <custom@example.com>',
-    to: user.email,
-    subject: "[PayVerse] Reset password",
-    html: emailBody,
-  };
-
-  return new Promise((resolve, reject) => {
-    transporter.sendMail(mailOptions, (error, info) => {
-      if (error) {
-        console.log(error);
-        return reject({ message: "Error sending email" });
-      }
-      console.log(`Email sent: ${info.response}`);
-      return resolve({ message: "Email sent successfully" });
-    });
+  return layout({
+    title: data.title || "PayVerse Email",
+    body,
+    year: new Date().getFullYear(),
   });
-};
+}
 
-export const sendVerificationCode = async (user: User, code: string) => {
-  const email = {
-    body: {
-      name: user.firstName,
-      intro: "Your verification code for login",
-      action: {
-        instructions: "Please use the code below to complete your login:",
-        button: {
-          color: "#1da1f2",
-          text: code,
-          link: "#",
-        },
-      },
-      outro: "If you did not request this code, please ignore this email.",
-    },
-  };
-
-  const emailBody = MailGenerator.generate(email);
-
-  const mailOptions = {
-    from: '"PayVerse" <custom@example.com>',
-    to: user.email,
-    subject: "[PayVerse] Verification code",
-    html: emailBody,
-  };
-
-  return new Promise((resolve, reject) => {
-    transporter.sendMail(mailOptions, (error, info) => {
-      if (error) {
-        console.log(error);
-        return reject({ message: "Error sending email" });
-      }
-      console.log(`Email sent: ${info.response}`);
-      return resolve({ message: "Email sent successfully" });
-    });
+export async function sendEmail({
+  to,
+  subject,
+  template,
+  data,
+}: {
+  to: string;
+  subject: string;
+  template: string;
+  data: any;
+}) {
+  const html = renderTemplate(template, data);
+  await transporter.sendMail({
+    from: '"PayVerse" <' + process.env.MY_EMAIL + ">",
+    to,
+    subject,
+    html,
   });
-};
+}
 
-export const sendEnableMfaEmail = async (user: User) => {
-  const email = {
-    body: {
-      name: user.firstName,
-      intro: "Your MFA has been enabled successfully.",
-      action: {
-        instructions: "You can now use MFA for added security.",
-        button: {
-          color: "#1da1f2",
-          text: "Go to Dashboard",
-          link: `${process.env.FRONTEND_URL}/dashboard`,
-        },
-      },
-      outro:
-        "Need help, or have questions? Just reply to this email, we'd love to help.",
-    },
-  };
-
-  const emailBody = MailGenerator.generate(email);
-
-  const mailOptions = {
-    from: '"PayVerse" <custom@example.com>',
-    to: user.email,
-    subject: "[PayVerse] MFA Enabled",
-    html: emailBody,
-  };
-
-  return new Promise((resolve, reject) => {
-    transporter.sendMail(mailOptions, (error, info) => {
-      if (error) {
-        console.log(error);
-        return reject({ message: "Error sending email" });
-      }
-      console.log(`Email sent: ${info.response}`);
-      return resolve({ message: "Email sent successfully" });
-    });
+// Example usage for verification email
+export async function sendVerificationEmail(
+  to: string,
+  name: string,
+  verificationUrl: string
+) {
+  await sendEmail({
+    to,
+    subject: "Verify your PayVerse email",
+    template: "verification",
+    data: { name, verificationUrl },
   });
-};
+}
+
+// Example usage for password reset email
+export async function sendResetPasswordEmail(
+  to: string,
+  name: string,
+  resetUrl: string
+) {
+  await sendEmail({
+    to,
+    subject: "Reset your PayVerse password",
+    template: "reset-password",
+    data: { name, resetUrl },
+  });
+}
+
+// Example usage for welcome email
+export async function sendWelcomeEmail(to: string, name: string) {
+  await sendEmail({
+    to,
+    subject: "Welcome to PayVerse!",
+    template: "welcome",
+    data: { name },
+  });
+}
+
+// Example usage for enable MFA email
+export async function sendSetupTOTPEmail(to: string, name: string) {
+  await sendEmail({
+    to,
+    subject: "Setup TOTP Multi-Factor Authentication (MFA)",
+    template: "setup-totp",
+    data: { name },
+  });
+}
+
+// Example usage for TOTP setup success email
+export async function sendTotpSetupSuccessEmail(to: string, name: string) {
+  await sendEmail({
+    to,
+    subject: "TOTP Setup Successful",
+    template: "totp-setup-success",
+    data: { name },
+  });
+}
+
+// Example usage for verification code email
+export async function sendVerificationCode(
+  to: string,
+  name: string,
+  code: string
+) {
+  await sendEmail({
+    to,
+    subject: "Your PayVerse Verification Code",
+    template: "verification-code",
+    data: { name, code },
+  });
+}

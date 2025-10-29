@@ -3,7 +3,11 @@ import { throwError } from "../../helpers/throw-error";
 import speakeasy from "speakeasy";
 import qrcode from "qrcode";
 import { enableMFA, MFAResponse, MFATypes } from "./mfa.interface";
-import { sendEnableMfaEmail } from "../../utils/email";
+import { signJsonWebToken } from "../../utils/auth";
+import {
+  sendSetupTOTPEmail,
+  sendTotpSetupSuccessEmail,
+} from "../../utils/email";
 import UserService from "../user/user.service";
 
 class MFAService {
@@ -16,30 +20,47 @@ class MFAService {
         isActive: true,
       },
     });
+    if (existingMFA) throwError(400, "MFA method already enabled");
 
-    if (existingMFA) {
-      return throwError(400, "MFA method already enabled");
+    let secretKey: string | null = null;
+    let qrCodeDataURL: string | null = null;
+
+    const mfaToken = signJsonWebToken({ id: payload.userId }, "10m");
+
+    if (payload.mfaType === "totp") {
+      const secret = speakeasy.generateSecret({
+        name: `PayVerse (${payload.userId})`,
+      });
+      secretKey = secret.base32;
+      qrCodeDataURL = await qrcode.toDataURL(secret.otpauth_url);
+
+      // Generate a TOTP token (for testing or debugging)
+      const token = speakeasy.totp({
+        secret: secretKey,
+        encoding: "base32",
+      });
+      console.log(token);
+
+      // 🧹 Clean up old unverified TOTP entries
+      await MFA.destroy({
+        where: {
+          userId: payload.userId,
+          mfaType: payload.mfaType,
+          isActive: false,
+        },
+      });
+
+      // 🆕 Create a fresh TOTP MFA entry
+      await MFA.create({
+        userId: payload.userId,
+        mfaType: payload.mfaType,
+        secretKey,
+        isActive: false,
+      });
+
+      const user = await this.userService.getUserById(payload.userId);
+      await sendSetupTOTPEmail(user.email, user.firstName);
     }
-
-    const secret = speakeasy.generateSecret({
-      name: `PayVerse (${payload.userId})`,
-    });
-
-    //TODO: remove this console log in production
-    const code = speakeasy.totp({
-      secret: secret.base32,
-      encoding: "base32",
-    });
-    console.log("TOTP Code (for testing):", code);
-
-    const qrCodeDataURL = await qrcode.toDataURL(secret.otpauth_url);
-
-    await MFA.create({
-      userId: payload.userId,
-      mfaType: payload.mfaType,
-      secretKey: secret.base32,
-      isActive: false,
-    });
 
     return {
       qrCode: qrCodeDataURL,
@@ -61,9 +82,9 @@ class MFAService {
 
     await mfaRecord.update({ isActive: true });
 
-    // TODO: trigger email notification to user to let them know they have successfully enabled TOTP MFA
-    // const user = await this.userService.getUserById(userId);
-    // await sendEnableMfaEmail(user);
+    // Send email notification to user after enabling TOTP MFA
+    const user = await this.userService.getUserById(userId);
+    await sendTotpSetupSuccessEmail(user.email, user.firstName);
   }
 
   public async verifyTotp(

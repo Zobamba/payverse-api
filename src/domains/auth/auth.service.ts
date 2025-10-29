@@ -56,9 +56,13 @@ class AuthService {
 
       const token = signJsonWebToken({ id: user.id });
 
-      await dbTransaction.commit();
-      await sendVerificationEmail(user, token);
+      await sendVerificationEmail(
+        user.email,
+        user.firstName,
+        `${process.env.FRONTEND_URL}/verify-email?token=${token}`
+      );
 
+      await dbTransaction.commit();
       return user;
     } catch (error) {
       await dbTransaction.rollback();
@@ -213,7 +217,11 @@ class AuthService {
     const user = userInstance.toJSON();
 
     const token = signJsonWebToken({ id: user.id });
-    await sendResetPasswordEmail(user, token);
+    await sendResetPasswordEmail(
+      user,
+      token,
+      "http://example.com/reset-password"
+    );
   }
 
   public async resetPassword(payload: ResetPassword): Promise<void> {
