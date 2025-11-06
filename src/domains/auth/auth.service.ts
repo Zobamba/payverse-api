@@ -17,7 +17,7 @@ import {
 import { handleEmailMFA } from "../../helpers/handle-email-mfa";
 import { signJsonWebToken, parseExpiry } from "../../utils/auth";
 import { throwError } from "../../helpers/throw-error";
-import MFA from "../mfa/mfa.model";
+import MFAService from "../mfa/mfa.service";
 import TokenService from "../token/token.service";
 import PasswordService from "../password/password.service";
 import sequelize from "../../config/database";
@@ -25,7 +25,8 @@ import sequelize from "../../config/database";
 class AuthService {
   constructor(
     private readonly passwordService: typeof PasswordService,
-    private readonly tokenService: typeof TokenService
+    private readonly tokenService: typeof TokenService,
+    private readonly mfaService: typeof MFAService
   ) {}
 
   public async register({ password, ...payload }: RegisterUser): Promise<User> {
@@ -41,10 +42,7 @@ class AuthService {
       }
 
       const hashedPassword = await bcrypt.hash(password, 10);
-      const userInstance = await User.create({
-        ...payload,
-        password: hashedPassword,
-      });
+      const userInstance = await User.create({ payload });
 
       const user = userInstance.toJSON();
 
@@ -124,22 +122,16 @@ class AuthService {
       throwError(400, "Please verify your email before logging in");
     }
 
-    let userMFAs = await MFA.findAll({
-      where: { userId: userData.id, isActive: true },
-      attributes: ["mfaType"],
-      raw: true,
-    });
+    const mfaOptions = await this.mfaService.getActiveMFAMethods(userData.id);
 
-    if (userMFAs.length === 0) {
+    if (mfaOptions.length === 0) {
       await handleEmailMFA(userData);
     }
 
     const mfaToken = signJsonWebToken(
-      { id: userData.id, type: "mfa", isEmail: userMFAs.length == 0 },
+      { id: userData.id, type: "mfa", isEmail: mfaOptions.length === 0 },
       process.env.JWT_ACCESS_TOKEN_EXPIRY
     );
-
-    const mfaOptions = userMFAs.map((mfa) => mfa.mfaType);
 
     return {
       mfaToken,
@@ -156,12 +148,7 @@ class AuthService {
   }
 
   private async verifyTotpMFA(userId: string, code: string, mfaType: string) {
-    const mfaMethod = await MFA.findOne({
-      where: {
-        userId,
-        mfaType,
-      },
-    });
+    const mfaMethod = await this.mfaService.findMFAByType(userId, mfaType);
 
     if (!mfaMethod) throwError(400, "MFA method not found");
 
@@ -192,12 +179,15 @@ class AuthService {
     const user = userInstance.toJSON();
     delete user.password;
 
-    if (decoded.data.isEmail) {
-      await this.verifyEmailMFA(user.id, payload.code);
-    } else if (payload.mfaType === "totp") {
-      await this.verifyTotpMFA(user.id, payload.code, payload.mfaType);
-    } else {
-      throwError(400, "Invalid MFA type");
+    switch (true) {
+      case decoded.data.isEmail:
+        await this.verifyEmailMFA(user.id, payload.code);
+        break;
+      case payload.mfaType === "totp":
+        await this.verifyTotpMFA(user.id, payload.code, payload.mfaType);
+        break;
+      default:
+        throwError(400, "Invalid MFA type");
     }
 
     const { accessToken, refreshToken } =
@@ -245,14 +235,13 @@ class AuthService {
 
     if (!userInstance) throwError(404, "User not found");
 
-    const getUserActivePassword =
-      await this.passwordService.getActivePassword(userId);
+    const activePassword = await this.passwordService.getActivePassword(userId);
 
-    if (!getUserActivePassword) {
+    if (!activePassword) {
       throwError(404, "User active password not found");
     }
 
-    const currentPassword = getUserActivePassword.password;
+    const currentPassword = activePassword.password;
 
     // Add safety check for currentPassword
     if (!currentPassword) {
@@ -275,26 +264,13 @@ class AuthService {
       throwError(400, "You cannot reuse your current password");
     }
 
-    const passwordHistory = await this.passwordService.getPasswords(userId);
-
-    // Add safety checks for password history
-    const validPasswordHistory = passwordHistory.filter(
-      (record) =>
-        record && record.password && typeof record.password === "string"
+    const isReusedPassword = await this.passwordService.isPasswordReused(
+      userId,
+      payload.newPassword
     );
 
-    if (validPasswordHistory.length > 0) {
-      const passwordChecks = await Promise.all(
-        validPasswordHistory.map(async (record) => {
-          return await bcrypt.compare(payload.newPassword, record.password);
-        })
-      );
-
-      const isReusedPassword = passwordChecks.some(Boolean);
-
-      if (isReusedPassword) {
-        throwError(400, "You cannot reuse a recent password");
-      }
+    if (isReusedPassword) {
+      throwError(400, "You cannot reuse a recent password");
     }
 
     const hashedPassword = await bcrypt.hash(payload.newPassword, 10);
@@ -303,7 +279,7 @@ class AuthService {
 
   public async refreshAccessToken(refreshToken: string) {
     if (!refreshToken) {
-      throwError(400, "Refresh token is required");
+      throwError(400, " Refresh token is required");
     }
 
     // Find the refresh token in the database
@@ -342,4 +318,4 @@ class AuthService {
   }
 }
 
-export default new AuthService(PasswordService, TokenService);
+export default new AuthService(PasswordService, TokenService, MFAService);
