@@ -1,5 +1,6 @@
 import Password from "./password.model";
 import { Transaction } from "sequelize";
+import bcrypt from "bcryptjs";
 
 const PASSWORD_HISTORY_LIMIT = 3;
 
@@ -48,6 +49,30 @@ class PasswordService {
       where: { userId, status: "Active" },
     });
     return password.toJSON();
+  }
+
+  public async isPasswordReused(
+    userId: string,
+    newPassword: string
+  ): Promise<boolean> {
+    const passwordHistory = await this.getPasswords(userId);
+
+    const validPasswordHistory = passwordHistory.filter(
+      (record) =>
+        record && record.password && typeof record.password === "string"
+    );
+
+    if (validPasswordHistory.length === 0) {
+      return false;
+    }
+
+    const passwordChecks = await Promise.all(
+      validPasswordHistory.map(async (record) => {
+        return await bcrypt.compare(newPassword, record.password);
+      })
+    );
+
+    return passwordChecks.some(Boolean);
   }
 }
 

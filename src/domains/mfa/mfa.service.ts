@@ -2,7 +2,7 @@ import MFA from "./mfa.model";
 import { throwError } from "../../helpers/throw-error";
 import speakeasy from "speakeasy";
 import qrcode from "qrcode";
-import { enableMFA, MFAResponse, MFATypes } from "./mfa.interface";
+import { enableMFA, MFAResponse } from "./mfa.interface";
 import { signJsonWebToken } from "../../utils/auth";
 import {
   sendSetupTOTPEmail,
@@ -12,6 +12,7 @@ import UserService from "../user/user.service";
 
 class MFAService {
   constructor(private readonly userService: typeof UserService) {}
+
   public async setupTotp(payload: enableMFA): Promise<MFAResponse> {
     const existingMFA = await MFA.findOne({
       where: {
@@ -114,6 +115,27 @@ class MFAService {
     });
 
     return isVerified;
+  }
+
+  public async getActiveMFAMethods(userId: string): Promise<string[]> {
+    const userMFAs = await MFA.findAll({
+      where: { userId, isActive: true },
+      attributes: ["mfaType"],
+      raw: true,
+    });
+
+    return userMFAs.map((mfa) => mfa.mfaType);
+  }
+
+  public async findMFAByType(userId: string, mfaType: string) {
+    const mfaMethod = await MFA.findOne({
+      where: {
+        userId,
+        mfaType,
+      },
+    });
+
+    return mfaMethod;
   }
 }
 
